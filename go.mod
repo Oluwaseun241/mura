@@ -1,4 +1,4 @@
-module github.com/mura
+module github.com/Oluwaseun241/mura
 
 go 1.22.5
 
