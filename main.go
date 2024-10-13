@@ -1,58 +1,29 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
-	"os"
 
-	vision "cloud.google.com/go/vision/apiv1"
+	"github.com/Oluwaseun241/mura/handler"
 	"github.com/joho/godotenv"
-	"google.golang.org/api/option"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
-	ctx := context.Background()
-
 	// Load Env variables
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	credsPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
-	if credsPath == "" {
-		log.Fatal("GOOGLE_APPLICATION_CREDENTIALS environment variable is not set.")
-	}
 
-	// Initialize a Vision client with your credentials
-	client, err := vision.NewImageAnnotatorClient(ctx, option.WithCredentialsFile(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")))
-	if err != nil {
-		log.Fatalf("Failed to create Vision client: %v", err)
-	}
-	defer client.Close()
+	e := echo.New()
 
-	// Read the image file
-	imagePath, err := os.Open("./raw.jpeg")
-	if err != nil {
-		log.Fatalf("Failed to read image path: %v", err)
-	}
-	defer imagePath.Close()
+	// Middleware
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
 
-	// Convert the image file to Google Vision's Image type
-	image, _ := vision.NewImageFromReader(imagePath)
+	// Routes
+	e.POST("/get-recipe", handler.RecipeHandler)
 
-	// Perform label detection on the image
-	labels, err := client.LocalizeObjects(ctx, image, nil)
-	if err != nil {
-		log.Fatalf("Failed to detect labels: %v", err)
-	}
-
-	// Print the detected labels
-	fmt.Println("Detected labels:")
-	for _, label := range labels {
-		if label.Score <= 0.59 {
-			fmt.Printf("Not sure of %s", label.Name)
-		}
-		fmt.Printf("%s (Confidence: %f)\n", label.Name, label.Score)
-	}
+	e.Logger.Fatal(e.Start(":3000"))
 }
