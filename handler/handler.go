@@ -13,6 +13,7 @@ import (
 	"google.golang.org/api/option"
 )
 
+// TODO: return recipe steps
 func printResponse(resp *genai.GenerateContentResponse) string {
 	var result strings.Builder
 	for _, cand := range resp.Candidates {
@@ -84,6 +85,7 @@ func detectIngredients(imagePath string, visionClient *vision.ImageAnnotatorClie
 }
 
 func RecipeHandler(c echo.Context) error {
+
 	credsPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 	geminiApiKey := os.Getenv("GEMINI_API_KEY")
 
@@ -91,7 +93,7 @@ func RecipeHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Credentials missing"})
 	}
 
-	visionClient, err := vision.NewImageAnnotatorClient(context.Background(), option.WithAPIKey(credsPath))
+	visionClient, err := vision.NewImageAnnotatorClient(context.Background(), option.WithCredentialsFile(credsPath))
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create Vision client"})
 	}
@@ -129,12 +131,14 @@ func RecipeHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
-	// Get food recipes from Gemini API
+	fmt.Println(ingredients)
+	//Get food recipes from Gemini API
 	recipe, err := getFoodRecipes(ingredients, geminiApiKey)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
+	fmt.Println(recipe)
 	return c.JSON(http.StatusOK, map[string]string{
-		"recipe": recipe,
+		"recipe": "yoo",
 	})
 }

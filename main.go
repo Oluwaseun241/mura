@@ -10,6 +10,7 @@ import (
 )
 
 func main() {
+
 	// Load Env variables
 	err := godotenv.Load()
 	if err != nil {
@@ -19,6 +20,7 @@ func main() {
 	e := echo.New()
 
 	// Middleware
+	e.Use(middleware.CORS())
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
