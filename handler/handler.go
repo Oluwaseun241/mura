@@ -113,7 +113,7 @@ func RecipeHandler(c echo.Context) error {
 	defer src.Close()
 
 	// Save the file to disk
-	imagePath := "./uploaded_image.jpeg"
+	imagePath := "./tmp/uploaded_image.jpeg"
 	dst, err := os.Create(imagePath)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to save image"})
