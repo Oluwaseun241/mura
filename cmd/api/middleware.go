@@ -1,28 +1,22 @@
-package handler
+package api
 
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 
 	vision "cloud.google.com/go/vision/apiv1"
 	"github.com/google/generative-ai-go/genai"
-	"github.com/labstack/echo/v4"
 	"google.golang.org/api/option"
 )
 
-// TODO: return recipe steps
 func printResponse(resp *genai.GenerateContentResponse) string {
 	var result strings.Builder
 	for _, cand := range resp.Candidates {
 		if cand.Content != nil {
-			recipeFound := false
 			for _, part := range cand.Content.Parts {
-				if recipeFound {
-					result.WriteString(fmt.Sprintf("%v\n", part))
-				}
+				result.WriteString(fmt.Sprintf("%v\n", part))
 			}
 		}
 	}
@@ -46,7 +40,6 @@ func getFoodRecipes(ingredients []string, geminiApiKey string) (string, error) {
 	if resp == nil {
 		return "", fmt.Errorf("no response received from Gemini API")
 	}
-
 	return printResponse(resp), nil
 }
 
@@ -82,63 +75,4 @@ func detectIngredients(imagePath string, visionClient *vision.ImageAnnotatorClie
 		}
 	}
 	return ingredients, nil
-}
-
-func RecipeHandler(c echo.Context) error {
-
-	credsPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
-	geminiApiKey := os.Getenv("GEMINI_API_KEY")
-
-	if credsPath == "" || geminiApiKey == "" {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Credentials missing"})
-	}
-
-	visionClient, err := vision.NewImageAnnotatorClient(context.Background(), option.WithCredentialsFile(credsPath))
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create Vision client"})
-	}
-	defer visionClient.Close()
-
-	// Get image file from the request
-	file, err := c.FormFile("image")
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "No image uploaded"})
-	}
-
-	// Save the uploaded file temporarily
-	src, err := file.Open()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to open uploaded image"})
-	}
-	defer src.Close()
-
-	// Save the file to disk
-	imagePath := "./tmp/uploaded_image.jpeg"
-	dst, err := os.Create(imagePath)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to save image"})
-	}
-	defer dst.Close()
-
-	// Copy the uploaded image to the destination file
-	if _, err = dst.ReadFrom(src); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to save image"})
-	}
-
-	// Detect ingredients from the image
-	ingredients, err := detectIngredients(imagePath, visionClient)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
-
-	fmt.Println(ingredients)
-	//Get food recipes from Gemini API
-	recipe, err := getFoodRecipes(ingredients, geminiApiKey)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
-	}
-	fmt.Println(recipe)
-	return c.JSON(http.StatusOK, map[string]string{
-		"recipe": "yoo",
-	})
 }
