@@ -10,6 +10,9 @@ import (
 	"google.golang.org/api/option"
 )
 
+// TODO: Support multiple image upload
+//
+//	Ability to specify food you have in mind(later)
 func IngredientHandler(c echo.Context) error {
 	credsPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
