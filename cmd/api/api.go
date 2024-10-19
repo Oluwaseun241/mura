@@ -26,40 +26,54 @@ func IngredientHandler(c echo.Context) error {
 	}
 	defer visionClient.Close()
 
-	// Get image file from the request
-	file, err := c.FormFile("image")
+	// Parse multiple files from the request
+	form, err := c.MultipartForm()
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "No image uploaded"})
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "No images uploaded"})
 	}
 
-	// Save the uploaded file temporarily
-	src, err := file.Open()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to open uploaded image"})
-	}
-	defer src.Close()
-
-	// Save the file to disk
-	imagePath := "./tmp/uploaded_image.jpeg"
-	dst, err := os.Create(imagePath)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to save image"})
-	}
-	defer dst.Close()
-
-	// Copy the uploaded image to the destination file
-	if _, err = dst.ReadFrom(src); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to save image"})
+	files := form.File["image"]
+	if len(files) == 0 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "No images uploaded"})
 	}
 
-	// Detect ingredients from the image
-	ingredients, err := detectIngredients(imagePath, visionClient)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+	allIngredients := []string{}
+
+	for _, file := range files {
+		// Save the uploaded file temporarily
+		src, err := file.Open()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to open uploaded image"})
+		}
+		defer src.Close()
+
+		// Save the file to disk
+		imagePath := "./tmp/" + file.Filename
+		dst, err := os.Create(imagePath)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to save image"})
+		}
+		defer dst.Close()
+
+		if _, err = dst.ReadFrom(src); err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to save image"})
+		}
+
+		// Detect ingredients from the image
+		ingredients, err := detectIngredients(imagePath, visionClient)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+		}
+
+		allIngredients = append(allIngredients, ingredients...)
 	}
+
+	//Remove duplicates from the ingredient list
+	response := removeDuplicates(allIngredients)
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
-		"ingredients": ingredients,
+		"status": true,
+		"data":   response,
 	})
 }
 
@@ -83,7 +97,8 @@ func RecipeHandler(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
-	return c.JSON(http.StatusOK, map[string]string{
-		"recipe": recipe,
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"status": true,
+		"data":   recipe,
 	})
 }

@@ -1,8 +1,8 @@
-# Mura
+# Mura (POC)
 
 Till futher notice since nigerian card refuse to work for billing
 
 ## Todo
 
 - [x] Create Api
-- [WIP] Build frontend
+- [x] Build frontend

@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recipe Generator</title>
+    <style>
+      /* General Styles */
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f0f2f5;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 100vh;
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-top: 30px;
+      }
+
+      form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+        margin-top: 20px;
+      }
+
+      label {
+        font-size: 1.1rem;
+        margin-bottom: 10px;
+        color: #555;
+      }
+
+      input[type="file"],
+      input[type="text"] {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        font-size: 1rem;
+        width: 100%;
+        max-width: 400px;
+      }
+
+      button {
+        padding: 12px 24px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        margin-top: 10px;
+      }
+
+      button:hover {
+        background-color: #0056b3;
+      }
+
+      .loader {
+        margin-top: 10px;
+        border: 10px solid #f3f3f3;
+        border-radius: 50%;
+        border-top: 10px solid #007bff;
+        border-bottom: 10px solid #007bff;
+        width: 25px;
+        height: 25px;
+        -webkit-animation: spin 2s linear infinite;
+        animation: spin 2s linear infinite;
+      }
+
+      @-webkit-keyframes spin {
+        0% { -webkit-transform: rotate(0deg); }
+        100% { -webkit-transfrom: rotate(360deg); }
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      }
+      .result {
+        margin-top: 30px;
+        text-align: center;
+        width: 80%;
+        max-width: 700px;
+      }
+
+      .error {
+        color: red;
+      }
+
+      .ingredients-list {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-top: 20px;
+      }
+
+      .ingredient-item {
+        background-color: #e9f7f2;
+        color: #007bff;
+        padding: 10px 15px;
+        border-radius: 20px;
+        margin: 5px;
+        cursor: pointer;
+        border: 1px solid #007bff;
+      }
+
+      .ingredient-item:hover {
+        background-color: #007bff;
+        color: white;
+      }
+
+      .add-ingredient {
+        margin-top: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .add-ingredient input {
+        margin-right: 10px;
+      }
+
+      .add-ingredient button {
+        margin-bottom: 32px;
+      }
+
+      .recipe {
+        margin-top: 20px;
+        border: 1px solid #ddd;
+        padding: 20px;
+        background-color: #fff;
+        text-align: left;
+        border-radius: 8px;
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Mobile Styles */
+      @media (max-width: 768px) {
+        form {
+          width: 90%;
+        }
+
+        .recipe {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Food Recipe Generator</h1>
+
+    <form id="recipeForm" enctype="multipart/form-data">
+      <label for="imageUpload">Upload an image of your ingredients:</label>
+      <input
+        type="file"
+        id="imageUpload"
+        name="image"
+        accept="image/*"
+        multiple
+        required
+      />
+      <button type="submit">Detect Ingredients</button>
+    </form>
+
+    <div class="result" id="result"></div>
+
+    <!-- Include marked.js for markdown to HTML conversion -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script>
+      const form = document.getElementById("recipeForm");
+      const resultDiv = document.getElementById("result");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        resultDiv.innerHTML = `<div class="loader"></div>`;
+
+        try {
+          // First API call: detect ingredients
+          const response = await fetch("http://localhost:3000/detect", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to detect ingredients. Please try again.");
+          }
+
+          const result = await response.json();
+
+          if (result) {
+            displayIngredients(result.data);
+          } else {
+            resultDiv.innerHTML = `<p class="error">No ingredients detected. Please try another image.</p>`;
+          }
+        } catch (error) {
+          resultDiv.innerHTML = `<p class="error">${error.message}</p>`;
+        }
+      });
+
+      function displayIngredients(ingredients) {
+        resultDiv.innerHTML = `
+                <h2>Select Ingredients</h2>
+                <div class="ingredients-list" id="ingredientsList">
+                    ${ingredients
+                      .map(
+                        (ingredient) => `
+                        <div class="ingredient-item">
+                            <input type="checkbox" name="ingredient" value="${ingredient}" checked>
+                            <label>${ingredient}</label>
+                        </div>
+                    `,
+                      )
+                      .join("")}
+                </div>
+                <div class="add-ingredient">
+                    <input type="text" id="newIngredient" placeholder="Add another ingredient" />
+                    <button id="addIngredientButton">Add</button>
+                </div>
+                <button id="getRecipeButton" style="margin-top: 20px;">Generate Recipe</button>
+            `;
+
+        document
+          .getElementById("addIngredientButton")
+          .addEventListener("click", (e) => {
+            e.preventDefault();
+            addIngredient();
+          });
+
+        document
+          .getElementById("getRecipeButton")
+          .addEventListener("click", getRecipe);
+      }
+
+      function addIngredient() {
+        const newIngredientInput = document.getElementById("newIngredient");
+        const newIngredient = newIngredientInput.value.trim();
+
+        if (newIngredient) {
+          const ingredientsList = document.getElementById("ingredientsList");
+          const newIngredientHtml = `
+                    <div class="ingredient-item">
+                        <input type="checkbox" name="ingredient" value="${newIngredient}" checked>
+                        <label>${newIngredient}</label>
+                    </div>
+                `;
+          ingredientsList.insertAdjacentHTML("beforeend", newIngredientHtml);
+          newIngredientInput.value = "";
+        }
+      }
+
+      async function getRecipe() {
+        const selectedIngredients = Array.from(
+          document.querySelectorAll('input[name="ingredient"]:checked'),
+        ).map((input) => input.value);
+
+        if (selectedIngredients.length === 0) {
+          resultDiv.innerHTML = `<p class="error">Please select at least one ingredient.</p>`;
+          return;
+        }
+
+        resultDiv.innerHTML = `<div class="loader"></div>`;
+
+        try {
+          // Second API call: generate recipe
+          const recipeResponse = await fetch(
+            "http://localhost:3000/get-recipe",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ ingredients: selectedIngredients }),
+            },
+          );
+
+          if (!recipeResponse.ok) {
+            throw new Error("Failed to generate recipe. Please try again.");
+          }
+
+          const recipeData = await recipeResponse.json();
+
+          if (recipeData) {
+            const recipeHtml = marked.parse(recipeData.data);
+            resultDiv.innerHTML = `
+                        <div class="recipe">
+                            <h2>Recipe</h2>
+                            <div>${recipeHtml}</div>
+                        </div>
+                    `;
+          } else {
+            resultDiv.innerHTML = `<p class="error">No recipe found for the selected ingredients.</p>`;
+          }
+        } catch (error) {
+          resultDiv.innerHTML = `<p class="error">${error.message}</p>`;
+        }
+      }
+    </script>
+  </body>
+</html>
