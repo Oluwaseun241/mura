@@ -6,7 +6,6 @@ require (
 	cloud.google.com/go/vision v1.2.0
 	github.com/google/generative-ai-go v0.18.0
 	github.com/joho/godotenv v1.5.1
-	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/echo/v4 v4.12.0
 	google.golang.org/api v0.186.0
 )

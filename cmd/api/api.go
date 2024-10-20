@@ -10,9 +10,6 @@ import (
 	"google.golang.org/api/option"
 )
 
-// TODO: Support multiple image upload
-//
-//	Ability to specify food you have in mind(later)
 func IngredientHandler(c echo.Context) error {
 	credsPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
@@ -47,22 +44,10 @@ func IngredientHandler(c echo.Context) error {
 		}
 		defer src.Close()
 
-		// Save the file to disk
-		imagePath := "./tmp/" + file.Filename
-		dst, err := os.Create(imagePath)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to save image"})
-		}
-		defer dst.Close()
-
-		if _, err = dst.ReadFrom(src); err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to save image"})
-		}
-
 		// Detect ingredients from the image
-		ingredients, err := detectIngredients(imagePath, visionClient)
+		ingredients, err := detectIngredients(src, visionClient)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{"error": err.Error()})
 		}
 
 		allIngredients = append(allIngredients, ingredients...)
@@ -86,6 +71,7 @@ func RecipeHandler(c echo.Context) error {
 
 	var data struct {
 		Ingredients []string `json:"ingredients"`
+		Dish        string   `json:"dish"`
 	}
 
 	if err := c.Bind(&data); err != nil {
@@ -93,7 +79,7 @@ func RecipeHandler(c echo.Context) error {
 	}
 
 	//Get food recipes using detected ingredients from Gemini API
-	recipe, err := getFoodRecipes(data.Ingredients, geminiApiKey)
+	recipe, err := getFoodRecipes(data.Ingredients, data.Dish, geminiApiKey)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}

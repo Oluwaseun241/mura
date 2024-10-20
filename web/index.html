@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Recipe Generator</title>
+    <title>Mura</title>
     <style>
       /* General Styles */
       body {
@@ -66,6 +66,12 @@
         background-color: #0056b3;
       }
 
+      .loader-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
       .loader {
         margin-top: 10px;
         border: 10px solid #f3f3f3;
@@ -79,16 +85,23 @@
       }
 
       @-webkit-keyframes spin {
-        0% { -webkit-transform: rotate(0deg); }
-        100% { -webkit-transfrom: rotate(360deg); }
+        0% {
+          -webkit-transform: rotate(0deg);
+        }
+        100% {
+          -webkit-transfrom: rotate(360deg);
+        }
       }
 
       @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
       }
 
-      }
       .result {
         margin-top: 30px;
         text-align: center;
@@ -160,7 +173,7 @@
     </style>
   </head>
   <body>
-    <h1>Food Recipe Generator</h1>
+    <h1>Mura</h1>
 
     <form id="recipeForm" enctype="multipart/form-data">
       <label for="imageUpload">Upload an image of your ingredients:</label>
@@ -172,6 +185,7 @@
         multiple
         required
       />
+
       <button type="submit">Detect Ingredients</button>
     </form>
 
@@ -179,7 +193,6 @@
 
     <!-- Include marked.js for markdown to HTML conversion -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
     <script>
       const form = document.getElementById("recipeForm");
       const resultDiv = document.getElementById("result");
@@ -188,7 +201,7 @@
         e.preventDefault();
 
         const formData = new FormData(form);
-        resultDiv.innerHTML = `<div class="loader"></div>`;
+        resultDiv.innerHTML = `<div class="loader-wrapper"><div class="loader"></div></div>`;
 
         try {
           // First API call: detect ingredients
@@ -197,11 +210,11 @@
             body: formData,
           });
 
-          if (!response.ok) {
-            throw new Error("Failed to detect ingredients. Please try again.");
-          }
-
           const result = await response.json();
+
+          if (!response.ok) {
+            throw new Error(result.error);
+          }
 
           if (result) {
             displayIngredients(result.data);
@@ -232,6 +245,7 @@
                     <input type="text" id="newIngredient" placeholder="Add another ingredient" />
                     <button id="addIngredientButton">Add</button>
                 </div>
+                <div id="dishInputContainer"></div>
                 <button id="getRecipeButton" style="margin-top: 20px;">Generate Recipe</button>
             `;
 
@@ -245,6 +259,24 @@
         document
           .getElementById("getRecipeButton")
           .addEventListener("click", getRecipe);
+        appendDishInput();
+      }
+
+      function appendDishInput() {
+        const dishInputWrapper = document.getElementById("dishInputWrapper");
+        if (dishInputContainer) {
+          dishInputContainer.innerHTML = `
+      <label for="targetRecipe">Specify a food/dish you have in mind (optional)</label>
+      <input
+        type="text"
+        id="targetRecipe"
+        name="targetRecipe"
+        placeholder="e.g. Spaghetti Bolognese"
+      />
+    `;
+        } else {
+          console.error("Dish input container not found in the DOM");
+        }
       }
 
       function addIngredient() {
@@ -269,12 +301,14 @@
           document.querySelectorAll('input[name="ingredient"]:checked'),
         ).map((input) => input.value);
 
-        if (selectedIngredients.length === 0) {
+        const option = document.getElementById("targetRecipe").value.trim();
+
+        if (selectedIngredients.length === 0 && !option) {
           resultDiv.innerHTML = `<p class="error">Please select at least one ingredient.</p>`;
           return;
         }
 
-        resultDiv.innerHTML = `<div class="loader"></div>`;
+        resultDiv.innerHTML = `<div class="loader-wrapper"><div class="loader"></div></div>`;
 
         try {
           // Second API call: generate recipe
@@ -285,7 +319,10 @@
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({ ingredients: selectedIngredients }),
+              body: JSON.stringify({
+                ingredients: selectedIngredients,
+                dish: option,
+              }),
             },
           );
 
@@ -296,19 +333,21 @@
           const recipeData = await recipeResponse.json();
 
           if (recipeData) {
-            const recipeHtml = marked.parse(recipeData.data);
-            resultDiv.innerHTML = `
-                        <div class="recipe">
-                            <h2>Recipe</h2>
-                            <div>${recipeHtml}</div>
-                        </div>
-                    `;
+            displayRecipe(recipeData.data);
           } else {
             resultDiv.innerHTML = `<p class="error">No recipe found for the selected ingredients.</p>`;
           }
         } catch (error) {
           resultDiv.innerHTML = `<p class="error">${error.message}</p>`;
         }
+      }
+      function displayRecipe(recipe) {
+        resultDiv.innerHTML = `
+            <h2>Recipe</h2>
+            <div class="recipe">
+                ${marked.parse(recipe)}
+            </div>
+        `;
       }
     </script>
   </body>
