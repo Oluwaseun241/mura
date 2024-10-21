@@ -33,7 +33,6 @@ jobs:
       - name: Set up Cloud SDK
         run: |
           echo "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" > $HOME/credentials.json
-          cat $HOME/credentials.json
           gcloud auth activate-service-account --key-file=$HOME/credentials.json
           gcloud config set project ${{ secrets.GCLOUD_PROJECT_ID }}
 
