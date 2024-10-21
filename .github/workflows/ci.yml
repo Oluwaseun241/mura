@@ -13,48 +13,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout code from the repository
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v1
 
       # Step 2: Set up Go environment
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v1
         with:
           go-version: "1.22"
 
-      # Step 3: Set Google Cloud Vision Credentials
-      - name: Set Google Cloud Vision Credentials
-        run: echo "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" > credentials.json
+      # Step 3: Authenticate with Google Cloud
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
 
-      # Step 4: Set environment variable for Google Application Credentials
-      - name: Set GOOGLE_APPLICATION_CREDENTIALS
-        run: echo "GOOGLE_APPLICATION_CREDENTIALS=$GITHUB_WORKSPACE/credentials.json" >> $GITHUB_ENV
+      # Step 4: Set up Cloud SDK
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCLOUD_PROJECT_ID }}
 
       # Step 5: Run tests
       - name: Run tests
         run: go test ./...
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      # Step 2: Set up Cloud SDK
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          project_id: ${{ secrets.GCLOUD_PROJECT_ID }}
-          service_account_key: ${{ secrets.GCLOUD_SERVICE_ACCOUNT_KEY }}
-
-      # Step 3: Authenticate Service Account
-      - name: Authenticate Service Account
-        run: gcloud auth activate-service-account --key-file=credentials.json
-
-      # Step 4: Deploy application
+      # Step 6: Deploy application
       - name: Deploy application
         run: |
           echo "Deploying application"
-          gcloud app deploy --quiet
+          gcloud app deploy
