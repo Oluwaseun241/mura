@@ -28,7 +28,6 @@ jobs:
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCLOUD_PROJECT_ID }}
-          credentials_json: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
 
       # Step 4: Run tests
       - name: Run tests
@@ -43,7 +42,7 @@ jobs:
       # Step 6: Push Docker image to Google Container Registry
       - name: Push Docker image
         run: |
-          docker push app gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/app
+          docker push gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/app
 
       # Step 7: Deploy application to Google Cloud Run
       - name: Deploy application
