@@ -63,7 +63,7 @@ func IngredientHandler(c echo.Context) error {
 }
 
 func RecipeHandler(c echo.Context) error {
-	geminiApiKey := os.Getenv("GEMINI_API_KEY")
+	geminiApiKey := os.Getenv("GCLOUD_SERVICE_ACCOUNT_KEY")
 
 	if geminiApiKey == "" {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Credentials missing"})
