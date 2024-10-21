@@ -43,7 +43,8 @@ jobs:
       - name: Push Docker image
         run: |
           set -x
-          docker push gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/mura
+          docker tag mura us-central1-docker.pkg.dev/${{ secrets.GCLOUD_PROJECT_ID }}/your-repository-name/mura
+          docker push us-central1-docker.pkg.dev/${{ secrets.GCLOUD_PROJECT_ID }}/your-repository-name/mura
 
       # Step 7: Deploy application to Google Cloud Run
       - name: Deploy application
