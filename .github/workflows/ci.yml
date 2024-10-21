@@ -37,8 +37,7 @@ jobs:
       # Step 5: Set up Cloud SDK
       - name: Set up Cloud SDK
         run: |
-          echo "Setting up Google Cloud SDK"
-          echo "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" | base64 --decode > $HOME/gcloud-key.json
+          echo "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" > $HOME/gcloud-key.json
           gcloud auth activate-service-account --key-file=$HOME/gcloud-key.json
           gcloud config set project ${{ secrets.GCLOUD_PROJECT_ID }}
 
