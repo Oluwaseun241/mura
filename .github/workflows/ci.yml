@@ -43,7 +43,7 @@ jobs:
       - name: Initialize App Engine (if not already initialized)
         run: |
           if ! gcloud app describe > /dev/null 2>&1; then
-            gcloud app create --region=africa-south1
+            gcloud app create --region=us-central1
           fi
 
       # Step 7: Deploy application
