@@ -1,5 +1,7 @@
-runtime: go120
+runtime: go122
 env: flex
+runtime_config:
+  operating_system: "ubuntu22"
 
 manual_scaling:
   instances: 1
