@@ -39,13 +39,6 @@ jobs:
       - name: Run tests
         run: go test ./...
 
-      # Step 6: Initialize App Engine (if not already initialized)
-      - name: Initialize App Engine (if not already initialized)
-        run: |
-          if ! gcloud app describe > /dev/null 2>&1; then
-            gcloud app create --region=us-central1
-          fi
-
       # Step 7: Deploy application
       - name: Deploy application
         run: |
