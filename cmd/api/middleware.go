@@ -96,7 +96,7 @@ func validateIngredient(ingredients []string) ([]string, []string, error) {
 	invalidIngredients := []string{}
 
 	// open and read txt file content
-	input, err := os.Open("./tmp/data.txt")
+	input, err := os.Open("./internal/data.txt")
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open file: %v", err)
 	}
