@@ -9,44 +9,55 @@ on:
         - prod
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
       # Step 1: Checkout code from the repository
       - name: Checkout code
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2
 
       # Step 2: Set up Go environment
       - name: Set up Go
-        uses: actions/setup-go@v1
+        uses: actions/setup-go@v2
         with:
           go-version: "1.22"
 
-      # Step 3: Authenticate with Google Cloud
+      # Step 3: Build Docker Image
+      - name: Build Docker Image
+        run: |
+          docker build -t gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/mura .
+
+      # Step 4: Authenticate with Google Cloud
       - name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v1
         with:
           credentials_json: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
 
-      # Step 4: Set up Cloud SDK
+      # Step 5: Set up Cloud SDK
       - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          project_id: ${{ secrets.GCLOUD_PROJECT_ID }}
+        run: |
+          echo "Setting up Google Cloud SDK"
+          echo "${{ secrets.GOOGLE_CREDENTIALS_JSON }}" | base64 --decode > $HOME/gcloud-key.json
+          gcloud auth activate-service-account --key-file=$HOME/gcloud-key.json
+          gcloud config set project ${{ secrets.GCLOUD_PROJECT_ID }}
 
-      # Step 5: Run tests
+        # Step 6: Run tests
       - name: Run tests
         run: go test ./...
 
-      - name: Initialize App Engine (if not already initialized)
+      # Step 7: Push Docker image to Google Container Registry
+      - name: Push Docker image
         run: |
-          if ! gcloud app describe > /dev/null 2>&1; then
-            gcloud app create --region=us-central1
-          fi
+          docker push gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/mura
 
-      # Step 7: Deploy application
+      # Step 8: Deploy application to Google Cloud Run
       - name: Deploy application
         run: |
-          echo "Deploying application"
-          gcloud app deploy --quiet
+          echo "Deploying application to Cloud Run"
+          gcloud run deploy your-service-name \
+            --image gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/mura \
+            --platform managed \
+            --region us-central1 \
+            --allow-unauthenticated \
+            --quiet

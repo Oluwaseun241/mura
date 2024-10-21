@@ -14,4 +14,3 @@ EXPOSE 8080
 
 # Run the Go app
 CMD ["./mura"]
-

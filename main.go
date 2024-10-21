@@ -28,5 +28,5 @@ func main() {
 	e.POST("/detect", api.IngredientHandler)
 	e.POST("/get-recipe", api.RecipeHandler)
 
-	e.Logger.Fatal(e.Start(":3000"))
+	e.Logger.Fatal(e.Start(":8080"))
 }
