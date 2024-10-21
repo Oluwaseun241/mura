@@ -12,10 +12,3 @@ resources:
 handlers:
   - url: /.*
     script: auto
-
-health_check:
-  enable_health_check: true
-  check_interval_sec: 10
-  timeout_sec: 50000
-  unhealthy_threshold: 3
-  healthy_threshold: 2
