@@ -43,4 +43,4 @@ jobs:
       - name: Deploy application
         run: |
           echo "Deploying application"
-          gcloud app deploy
+          gcloud app deploy --quiet
