@@ -37,21 +37,20 @@ jobs:
       # Step 5: Build Docker Image
       - name: Build Docker Image
         run: |
-          docker build -t gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/mura .
+          docker build -t app .
+          docker tag app gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/app
 
       # Step 6: Push Docker image to Google Container Registry
       - name: Push Docker image
         run: |
-          set -x
-          docker tag mura us-central1-docker.pkg.dev/${{ secrets.GCLOUD_PROJECT_ID }}/your-repository-name/mura
-          docker push us-central1-docker.pkg.dev/${{ secrets.GCLOUD_PROJECT_ID }}/your-repository-name/mura
+          docker push app gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/app
 
       # Step 7: Deploy application to Google Cloud Run
       - name: Deploy application
         run: |
           echo "Deploying application to Cloud Run"
           gcloud run deploy your-service-name \
-            --image gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/mura \
+            --image gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/app \
             --platform managed \
             --region us-central1 \
             --allow-unauthenticated \
