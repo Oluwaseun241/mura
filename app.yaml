@@ -1,4 +1,4 @@
-runtime: go
+runtime: custom
 env: flex
 
 manual_scaling:
@@ -7,8 +7,3 @@ manual_scaling:
 resources:
   cpu: 1
   memory_gb: 0.5
-  disk_size_gb: 10
-
-handlers:
-  - url: /.*
-    script: auto
