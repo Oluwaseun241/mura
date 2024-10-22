@@ -25,36 +25,22 @@ jobs:
 
       # Step 3: Authenticate with Google Cloud
       - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+
+      # Step 3: Authenticate with Google Cloud
+      - name: Authenticate with Google Cloud
         uses: google-github-actions/setup-gcloud@v1
         with:
           project_id: ${{ secrets.GCLOUD_PROJECT_ID }}
 
-      - name: Configure Docker authentication
-        run: |
-          gcloud auth configure-docker gcr.io
-
-      # Step 4: Run tests
+          # Step 4: Run tests
       - name: Run tests
         run: go test ./...
 
-      # Step 5: Build Docker Image
-      - name: Build Docker Image
-        run: |
-          docker build -t app .
-          docker tag app gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/app
-
-      # Step 6: Push Docker image to Google Container Registry
-      - name: Push Docker image
-        run: |
-          docker push gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/app
-
-      # Step 7: Deploy application to Google Cloud Run
+        # Step 7: Deploy application to Google Cloud Run
       - name: Deploy application
         run: |
-          echo "Deploying application to Cloud Run"
-          gcloud run deploy your-service-name \
-            --image gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/app \
-            --platform managed \
-            --region us-central1 \
-            --allow-unauthenticated \
-            --quiet
+          echo "Deploying application"
+          gcloud app deploy --quiet
