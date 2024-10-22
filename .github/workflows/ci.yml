@@ -29,6 +29,10 @@ jobs:
         with:
           project_id: ${{ secrets.GCLOUD_PROJECT_ID }}
 
+      - name: Configure Docker authentication
+        run: |
+          gcloud auth configure-docker gcr.io
+
       # Step 4: Run tests
       - name: Run tests
         run: go test ./...
