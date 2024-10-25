@@ -205,10 +205,13 @@
 
         try {
           // First API call: detect ingredients
-          const response = await fetch("http://localhost:3000/detect", {
-            method: "POST",
-            body: formData,
-          });
+          const response = await fetch(
+            "https://mura-350954800161.africa-south1.run.app/detect",
+            {
+              method: "POST",
+              body: formData,
+            },
+          );
 
           const result = await response.json();
 
@@ -313,7 +316,7 @@
         try {
           // Second API call: generate recipe
           const recipeResponse = await fetch(
-            "http://localhost:3000/get-recipe",
+            "https://mura-350954800161.africa-south1.run.app/get-recipe",
             {
               method: "POST",
               headers: {

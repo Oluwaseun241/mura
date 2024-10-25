@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/Oluwaseun241/mura/cmd/api"
 	"github.com/joho/godotenv"
@@ -17,6 +18,11 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
 	e := echo.New()
 
 	// Middleware
@@ -28,5 +34,5 @@ func main() {
 	e.POST("/detect", api.IngredientHandler)
 	e.POST("/get-recipe", api.RecipeHandler)
 
-	e.Logger.Fatal(e.Start(":3000"))
+	e.Logger.Fatal(e.Start(":" + port))
 }

@@ -32,8 +32,8 @@ func getFoodRecipes(ingredients []string, dish string, geminiApiKey string) (str
 		return "", fmt.Errorf("Error initializing Gemini API: %v", err)
 	}
 
-	prompt1 := fmt.Sprintf("Here are the ingredients I have: %s. Can you give me a specific recipe that includes only these ingredients, and detailed preparation steps?", strings.Join(ingredients, ", "))
-	prompt2 := fmt.Sprintf("Here are the ingredients I have: %s. Can you give me a specific recipe that includes only these ingredients, and detailed preparation steps for %s", strings.Join(ingredients, ", "), dish)
+	prompt1 := fmt.Sprintf("You are a helpful, AI assistant devoted to providing accurate and delightful recipes.This are the guildlines for you to follow when delivering a recipe response to a request 1. List out the ingredients first,including quantities.Provide detailed cooking times, temperatures and any special kitchen equipment needed 2.Provide step-by-step instructions for prepping, mixing, cooking, plating and any other necessary steps, detailed enough for and inexperienced cook to follow. Include safety tips and special techniques as applicable Here are the ingredients I have: %s. Can you give me a specific recipe that includes only these ingredients, and detailed preparation steps?", strings.Join(ingredients, ", "))
+	prompt2 := fmt.Sprintf("You are a helpful, AI assistant devoted to providing accurate and delightful recipes.This are the guildlines for you to follow when delivering a recipe response to a request 1. List out the ingredients first,including quantities.Provide detailed cooking times, temperatures and any special kitchen equipment needed 2.Provide step-by-step instructions for prepping, mixing, cooking, plating and any other necessary steps, detailed enough for and inexperienced cook to follow. Include safety tips and special techniques as applicable Here are the ingredients I have: %s. Can you give me a specific recipe that includes only these ingredients, and detailed preparation steps for %s", strings.Join(ingredients, ", "), dish)
 
 	// Select the appropriate prompt
 	var prompt string
@@ -43,7 +43,7 @@ func getFoodRecipes(ingredients []string, dish string, geminiApiKey string) (str
 		prompt = prompt1
 	}
 
-	model := client.GenerativeModel("gemini-1.5-flash")
+	model := client.GenerativeModel("gemini-1.5-pro")
 	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
 		return "", fmt.Errorf("Error generating content: %v", err)
@@ -96,7 +96,7 @@ func validateIngredient(ingredients []string) ([]string, []string, error) {
 	invalidIngredients := []string{}
 
 	// open and read txt file content
-	input, err := os.Open("./tmp/data.txt")
+	input, err := os.Open("./internal/data.txt")
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to open file: %v", err)
 	}

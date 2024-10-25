@@ -1,0 +1,46 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - prod
+    pull_request:
+      branches:
+        - prod
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Go environment
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.22"
+
+      # Step 3: Authenticate with Google Cloud
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+
+      # Step 3: Authenticate with Google Cloud
+      - name: Authenticate with Google Cloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCLOUD_PROJECT_ID }}
+
+          # Step 4: Run tests
+      - name: Run tests
+        run: go test ./...
+
+        # Step 7: Deploy application to Google Cloud Run
+      - name: Deploy application
+        run: |
+          echo "Deploying application"
+          gcloud app deploy --quiet

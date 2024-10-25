@@ -1,7 +1,5 @@
 tmp
 bin
 .env
-foodai.json
-mura.json
-raw.jpeg
-melon.jpeg
+script.sh
+credentials.json
