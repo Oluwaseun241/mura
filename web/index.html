@@ -160,6 +160,23 @@
         box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
       }
 
+      .navigation {
+        margin-top: 20px;
+      }
+
+      .navigation a {
+        padding: 10px 20px;
+        background-color: lightgrey;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .navigation a:hover {
+        background-color: grey;
+      }
+
       /* Mobile Styles */
       @media (max-width: 768px) {
         form {
@@ -174,7 +191,6 @@
   </head>
   <body>
     <h1>Mura</h1>
-
     <form id="recipeForm" enctype="multipart/form-data">
       <label for="imageUpload">Upload an image of your ingredients:</label>
       <input
@@ -188,6 +204,10 @@
 
       <button type="submit">Detect Ingredients</button>
     </form>
+
+    <div class="navigation">
+      <a href="food.html">Go to Food Detection</a>
+    </div>
 
     <div class="result" id="result"></div>
 
@@ -206,7 +226,7 @@
         try {
           // First API call: detect ingredients
           const response = await fetch(
-            "https://mura-350954800161.africa-south1.run.app/detect",
+            "https://mura-cfpjfgg6ca-bq.a.run.app/detect",
             {
               method: "POST",
               body: formData,
@@ -316,7 +336,7 @@
         try {
           // Second API call: generate recipe
           const recipeResponse = await fetch(
-            "https://mura-350954800161.africa-south1.run.app/get-recipe",
+            "https://mura-cfpjfgg6ca-bq.a.run.app/get-recipe",
             {
               method: "POST",
               headers: {

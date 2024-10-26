@@ -32,8 +32,8 @@ func getFoodRecipes(ingredients []string, dish string, geminiApiKey string) (str
 		return "", fmt.Errorf("Error initializing Gemini API: %v", err)
 	}
 
-	prompt1 := fmt.Sprintf("You are a helpful, AI assistant devoted to providing accurate and delightful recipes.This are the guildlines for you to follow when delivering a recipe response to a request 1. List out the ingredients first,including quantities.Provide detailed cooking times, temperatures and any special kitchen equipment needed 2.Provide step-by-step instructions for prepping, mixing, cooking, plating and any other necessary steps, detailed enough for and inexperienced cook to follow. Include safety tips and special techniques as applicable Here are the ingredients I have: %s. Can you give me a specific recipe that includes only these ingredients, and detailed preparation steps?", strings.Join(ingredients, ", "))
-	prompt2 := fmt.Sprintf("You are a helpful, AI assistant devoted to providing accurate and delightful recipes.This are the guildlines for you to follow when delivering a recipe response to a request 1. List out the ingredients first,including quantities.Provide detailed cooking times, temperatures and any special kitchen equipment needed 2.Provide step-by-step instructions for prepping, mixing, cooking, plating and any other necessary steps, detailed enough for and inexperienced cook to follow. Include safety tips and special techniques as applicable Here are the ingredients I have: %s. Can you give me a specific recipe that includes only these ingredients, and detailed preparation steps for %s", strings.Join(ingredients, ", "), dish)
+	prompt1 := fmt.Sprintf("You are a helpful, AI assistant devoted to providing accurate and delightful recipes.This are the guildlines for you to follow when delivering a recipe response to a request 1. List out the ingredients first,including quantities.Provide detailed cooking times, temperatures and any special kitchen equipment needed 2.Provide step-by-step instructions for prepping, mixing, cooking, plating and any other necessary steps, detailed enough to follow. Include safety tips and special techniques as applicable Here are the ingredients I have: %s. Can you give me a specific recipe that includes only these ingredients, and detailed preparation steps?", strings.Join(ingredients, ", "))
+	prompt2 := fmt.Sprintf("You are a helpful, AI assistant devoted to providing accurate and delightful recipes.This are the guildlines for you to follow when delivering a recipe response to a request 1. List out the ingredients first,including quantities.Provide detailed cooking times, temperatures and any special kitchen equipment needed 2.Provide step-by-step instructions for prepping, mixing, cooking, plating and any other necessary steps, detailed enough to follow. Include safety tips and special techniques as applicable Here are the ingredients I have: %s. Can you give me a specific recipe that includes only these ingredients, and detailed preparation steps for %s", strings.Join(ingredients, ", "), dish)
 
 	// Select the appropriate prompt
 	var prompt string
@@ -52,6 +52,27 @@ func getFoodRecipes(ingredients []string, dish string, geminiApiKey string) (str
 		return "", fmt.Errorf("no response received from Gemini API")
 	}
 	return printResponse(resp), nil
+}
+
+func detectFood(fileBytes []byte, geminiApiKey string) (string, error) {
+	ctx := context.Background()
+	prompt := []genai.Part{
+		genai.ImageData("jpeg", fileBytes),
+		genai.Text("Accurately identify the food in the image and provide an appropriate recipe consistent with your analysis."),
+	}
+
+	client, err := genai.NewClient(ctx, option.WithAPIKey(geminiApiKey))
+	if err != nil {
+		return "", fmt.Errorf("Error initializing Gemini API")
+	}
+
+	model := client.GenerativeModel("gemini-1.5-pro")
+	resp, err := model.GenerateContent(ctx, prompt...)
+	if err != nil {
+		return "", fmt.Errorf("Error generating content")
+	}
+	return printResponse(resp), nil
+
 }
 
 func detectIngredients(file multipart.File, visionClient *vision.ImageAnnotatorClient) ([]string, error) {
