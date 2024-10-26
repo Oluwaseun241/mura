@@ -2,7 +2,7 @@ FROM golang:1.22.7-alpine
 
 WORKDIR /app
 
-COPY go.mod go.sum credentials.json ./
+COPY go.mod go.sum credentials.json .env ./
 
 RUN go mod download
 

@@ -11,7 +11,6 @@ import (
 )
 
 func main() {
-
 	// Load Env variables
 	err := godotenv.Load()
 	if err != nil {
@@ -31,6 +30,7 @@ func main() {
 	e.Use(middleware.Recover())
 
 	// Routes
+	e.POST("/detect-food", api.FoodHandler)
 	e.POST("/detect", api.IngredientHandler)
 	e.POST("/get-recipe", api.RecipeHandler)
 
