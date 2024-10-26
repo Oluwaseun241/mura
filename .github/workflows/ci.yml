@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -25,7 +25,7 @@ jobs:
           context: .
           file: Dockerfile
           push: false
-          tags: mura:latest  
+          tags: mura:latest
 
       - name: Image digest
-        run: echo "Built image digest: ${{ steps.build.outputs.digest }}"
+        run: echo "Built image digest"
