@@ -93,45 +93,43 @@ func detectFood(fileBytes []byte, geminiApiKey string) (string, error) {
 	return printResponse(resp), nil
 }
 
-func detectIngredients(file []byte, apiKey string) (string, error) {
+func detectIngredients(file []byte, apiKey string) (map[string]interface{}, error) {
 	client, err := genai.NewClient(context.Background(), option.WithAPIKey(apiKey))
 	if err != nil {
-		return "", fmt.Errorf("Error initializing Gemini API")
+		return nil, fmt.Errorf("Error initializing Gemini API")
 	}
 	model := client.GenerativeModel("gemini-1.5-pro")
+	model.ResponseMIMEType = "application/json"
 	prompt := []genai.Part{
 		genai.ImageData("jpeg", file),
 		genai.Text("Identify and list all food items in this image with accurate labels in JSON format. Please return the result as a valid JSON object formatted as {'foods': ['item1', 'item2', ...]} without any additional text, comments, or formatting issues."),
 	}
 	resp, err := model.GenerateContent(context.Background(), prompt...)
 	if err != nil {
-		return "", fmt.Errorf("error generating content: %v", err)
+		return nil, fmt.Errorf("error generating content: %v", err)
 	}
 
 	// Extract the content from the response
 	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
-		return "", fmt.Errorf("no content generated")
+		return nil, fmt.Errorf("no content generated")
 	}
 
-	// Initialize an empty string to hold the combined content
 	var combinedContent string
-
-	// Iterate over the Parts to build the content string
 	for _, part := range resp.Candidates[0].Content.Parts {
 		if textPart, ok := part.(genai.Text); ok {
 			combinedContent += string(textPart)
 		} else {
-			return "", fmt.Errorf("unexpected part type: %T", part)
+			return nil, fmt.Errorf("unexpected part type: %T", part)
 		}
 	}
-	fmt.Printf("Combined Content: %s\n", combinedContent)
 
 	var parsedResponse map[string]interface{}
 	err = json.Unmarshal([]byte(combinedContent), &parsedResponse)
 	if err != nil {
-		return "", fmt.Errorf("error parsing response: %v", err)
+		return nil, fmt.Errorf("error parsing response: %v", err)
 	}
-	return combinedContent, nil
+
+	return parsedResponse, nil
 }
 
 // Check if they are food item

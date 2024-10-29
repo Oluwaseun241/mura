@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -53,7 +52,6 @@ func FoodHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{"error": err.Error()})
 	}
 
-	fmt.Println(imageType)
 	if imageType == "ingredient" {
 		ingredients, err := detectIngredients(fileBytes, geminiApiKey)
 		if err != nil {

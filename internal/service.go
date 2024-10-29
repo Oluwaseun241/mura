@@ -28,11 +28,19 @@ func ClassifyImage(imageBytes []byte, cred string) (string, error) {
 		return "", err
 	}
 
-	for _, aannotation := range annotations {
-		if aannotation.Description == "ingredient" {
-			return "ingrdient", nil
-		} else if aannotation.Description == "cooked food" {
-			return "cooked food", nil
+	cookedFoodTerms := []string{"Food", "Recipe", "Cuisine", "Dish", "Jollof rice", "Fried rice", "Rice"}
+	ingredientTerms := []string{"Ingredient", "Vegetable", "Spice"}
+
+	for _, annotation := range annotations {
+		for _, term := range cookedFoodTerms {
+			if annotation.Description == term && annotation.Score >= 0.75 {
+				return "cooked food", nil
+			}
+		}
+		for _, term := range ingredientTerms {
+			if annotation.Description == term && annotation.Score >= 0.75 {
+				return "ingredient", nil
+			}
 		}
 	}
 	return "ingredient", nil
