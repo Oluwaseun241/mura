@@ -3,12 +3,11 @@ package api
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
-	"mime/multipart"
 	"os"
 	"strings"
 
-	vision "cloud.google.com/go/vision/apiv1"
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 )
@@ -23,6 +22,26 @@ func printResponse(resp *genai.GenerateContentResponse) string {
 		}
 	}
 	return result.String()
+}
+
+func parseResponse(resp string) (string, error) {
+	var ingredients struct {
+		Ingredients []string `json:"ingredients"`
+	}
+
+	// Use json.Unmarshal to parse the structured text response into JSON
+	err := json.Unmarshal([]byte(resp), &ingredients)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse response JSON: %v", err)
+	}
+
+	// Format it back to a string to return as JSON
+	formattedResponse, err := json.MarshalIndent(ingredients, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("failed to format response JSON: %v", err)
+	}
+
+	return string(formattedResponse), nil
 }
 
 func getFoodRecipes(ingredients []string, dish string, geminiApiKey string) (string, error) {
@@ -72,43 +91,47 @@ func detectFood(fileBytes []byte, geminiApiKey string) (string, error) {
 		return "", fmt.Errorf("Error generating content")
 	}
 	return printResponse(resp), nil
-
 }
 
-func detectIngredients(file multipart.File, visionClient *vision.ImageAnnotatorClient) ([]string, error) {
-	image, err := vision.NewImageFromReader(file)
+func detectIngredients(file []byte, apiKey string) (string, error) {
+	client, err := genai.NewClient(context.Background(), option.WithAPIKey(apiKey))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to convert image to vision format: %v", err)
+		return "", fmt.Errorf("Error initializing Gemini API")
+	}
+	model := client.GenerativeModel("gemini-1.5-pro")
+	prompt := []genai.Part{
+		genai.ImageData("jpeg", file),
+		genai.Text("Identify and list all food items in this image with accurate labels in JSON format. Please return the result as a valid JSON object formatted as {'foods': ['item1', 'item2', ...]} without any additional text, comments, or formatting issues."),
+	}
+	resp, err := model.GenerateContent(context.Background(), prompt...)
+	if err != nil {
+		return "", fmt.Errorf("error generating content: %v", err)
 	}
 
-	// Perform label detection
-	labels, err := visionClient.LocalizeObjects(context.Background(), image, nil)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to detect labels: %v", err)
+	// Extract the content from the response
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+		return "", fmt.Errorf("no content generated")
 	}
 
-	// Collect ingredients, ensuring no duplicates
-	ingredientMap := make(map[string]bool)
-	var ingredients []string
-	for _, label := range labels {
-		if label.Score > 0.55 {
-			ingredient := label.Name
-			if !ingredientMap[ingredient] {
-				ingredientMap[ingredient] = true
-				ingredients = append(ingredients, ingredient)
-			}
+	// Initialize an empty string to hold the combined content
+	var combinedContent string
+
+	// Iterate over the Parts to build the content string
+	for _, part := range resp.Candidates[0].Content.Parts {
+		if textPart, ok := part.(genai.Text); ok {
+			combinedContent += string(textPart)
+		} else {
+			return "", fmt.Errorf("unexpected part type: %T", part)
 		}
 	}
+	fmt.Printf("Combined Content: %s\n", combinedContent)
 
-	// validate detected ingredients
-	valid, invalid, err := validateIngredient(ingredients)
+	var parsedResponse map[string]interface{}
+	err = json.Unmarshal([]byte(combinedContent), &parsedResponse)
 	if err != nil {
-		return nil, fmt.Errorf("Error: %s", err)
+		return "", fmt.Errorf("error parsing response: %v", err)
 	}
-	if len(valid) == 0 && len(invalid) > 0 {
-		return nil, fmt.Errorf("Invalid food item: found %v", invalid)
-	}
-	return valid, nil
+	return combinedContent, nil
 }
 
 // Check if they are food item

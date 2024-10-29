@@ -26,12 +26,12 @@ func main() {
 
 	// Middleware
 	e.Use(middleware.CORS())
-	e.Use(middleware.Logger())
+	//e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
 	// Routes
 	e.POST("/detect-food", api.FoodHandler)
-	e.POST("/detect", api.IngredientHandler)
+	//e.POST("/detect", api.IngredientHandler)
 	e.POST("/get-recipe", api.RecipeHandler)
 
 	e.Logger.Fatal(e.Start(":" + port))

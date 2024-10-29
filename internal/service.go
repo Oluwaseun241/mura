@@ -1,22 +1,24 @@
 package internal
 
 import (
+	"bytes"
 	"context"
-	"mime/multipart"
 
 	vision "cloud.google.com/go/vision/apiv1"
 	"google.golang.org/api/option"
 )
 
-func ClassifyImage(image multipart.File, apiKey string) (string, error) {
+func ClassifyImage(imageBytes []byte, cred string) (string, error) {
 	ctx := context.Background()
-	client, err := vision.NewImageAnnotatorClient(ctx, option.WithAPIKey(apiKey))
+	client, err := vision.NewImageAnnotatorClient(ctx, option.WithCredentialsFile(cred))
 	if err != nil {
 		return "", err
 	}
 	defer client.Close()
 
-	img, err := vision.NewImageFromReader(image)
+	imageReader := bytes.NewReader(imageBytes)
+
+	img, err := vision.NewImageFromReader(imageReader)
 	if err != nil {
 		return "", err
 	}
