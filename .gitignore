@@ -2,4 +2,3 @@ tmp
 bin
 .env
 script.sh
-credentials.json

@@ -4,25 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 )
 
-func printResponse(resp *genai.GenerateContentResponse) string {
-	var result strings.Builder
-	for _, cand := range resp.Candidates {
-		if cand.Content != nil {
-			for _, part := range cand.Content.Parts {
-				result.WriteString(fmt.Sprintf("%v\n", part))
-			}
-		}
-	}
-	return result.String()
-}
+func getFoodRecipes(ingredients []string, dish string) (string, error) {
+	geminiApiKey := os.Getenv("GEMINI_API_KEY")
 
-func getFoodRecipes(ingredients []string, dish string, geminiApiKey string) (string, error) {
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, option.WithAPIKey(geminiApiKey))
 	if err != nil {
@@ -51,7 +42,9 @@ func getFoodRecipes(ingredients []string, dish string, geminiApiKey string) (str
 	return printResponse(resp), nil
 }
 
-func detectFood(fileBytes []byte, geminiApiKey string) (string, error) {
+func detectFood(fileBytes []byte) (string, error) {
+	geminiApiKey := os.Getenv("GEMINI_API_KEY")
+
 	ctx := context.Background()
 	prompt := []genai.Part{
 		genai.ImageData("jpeg", fileBytes),
@@ -71,8 +64,10 @@ func detectFood(fileBytes []byte, geminiApiKey string) (string, error) {
 	return printResponse(resp), nil
 }
 
-func detectIngredients(file []byte, apiKey string) (map[string]interface{}, error) {
-	client, err := genai.NewClient(context.Background(), option.WithAPIKey(apiKey))
+func detectIngredients(file []byte) (map[string]interface{}, error) {
+	geminiApiKey := os.Getenv("GEMINI_API_KEY")
+
+	client, err := genai.NewClient(context.Background(), option.WithAPIKey(geminiApiKey))
 	if err != nil {
 		return nil, fmt.Errorf("Error initializing Gemini API")
 	}
@@ -113,19 +108,4 @@ func detectIngredients(file []byte, apiKey string) (map[string]interface{}, erro
 	}
 
 	return parsedResponse, nil
-}
-
-func removeDuplicates(elements []interface{}) []interface{} {
-	encountered := map[string]bool{}
-	result := []interface{}{}
-
-	for _, v := range elements {
-		strValue := fmt.Sprintf("%v", v)
-		if !encountered[strValue] {
-			encountered[strValue] = true
-			result = append(result, v)
-		}
-	}
-
-	return result
 }
