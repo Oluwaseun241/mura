@@ -129,6 +129,11 @@ func detectIngredients(file []byte, apiKey string) (map[string]interface{}, erro
 		return nil, fmt.Errorf("error parsing response: %v", err)
 	}
 
+	if foods, ok := parsedResponse["foods"].([]interface{}); ok {
+		uniqueFoods := removeDuplicates(foods)
+		parsedResponse["foods"] = uniqueFoods
+	}
+
 	return parsedResponse, nil
 }
 
@@ -165,13 +170,14 @@ func validateIngredient(ingredients []string) ([]string, []string, error) {
 	return validIngredients, invalidIngredients, nil
 }
 
-func removeDuplicates(elements []string) []string {
+func removeDuplicates(elements []interface{}) []interface{} {
 	encountered := map[string]bool{}
-	result := []string{}
+	result := []interface{}{}
 
 	for _, v := range elements {
-		if !encountered[v] {
-			encountered[v] = true
+		strValue := fmt.Sprintf("%v", v)
+		if !encountered[strValue] {
+			encountered[strValue] = true
 			result = append(result, v)
 		}
 	}

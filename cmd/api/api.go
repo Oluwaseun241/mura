@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -13,15 +14,11 @@ import (
 )
 
 func FoodHandler(c echo.Context) error {
-	geminiApiKey := os.Getenv("GCLOUD_SERVICE_ACCOUNT_KEY")
+	geminiApiKey := os.Getenv("GEMINI_API_KEY")
 
-	credsPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
+	authKey := os.Getenv("GOOGLE_SERVICE_KEY")
 
-	if credsPath == "" {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Credentials missing"})
-	}
-
-	visionClient, err := vision.NewImageAnnotatorClient(context.Background(), option.WithCredentialsFile(credsPath))
+	visionClient, err := vision.NewImageAnnotatorClient(context.Background(), option.WithAPIKey(authKey))
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create Vision client"})
 	}
@@ -47,7 +44,7 @@ func FoodHandler(c echo.Context) error {
 	}
 
 	// Classify the image
-	imageType, err := internal.ClassifyImage(fileBytes, credsPath)
+	imageType, err := internal.ClassifyImage(fileBytes, authKey)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]interface{}{"error": err.Error()})
 	}
@@ -74,59 +71,62 @@ func FoodHandler(c echo.Context) error {
 	})
 }
 
-// func IngredientHandler(c echo.Context) error {
-// 	credsPath := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
-//
-// 	if credsPath == "" {
-// 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Credentials missing"})
-// 	}
-//
-// 	visionClient, err := vision.NewImageAnnotatorClient(context.Background(), option.WithCredentialsFile(credsPath))
-// 	if err != nil {
-// 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create Vision client"})
-// 	}
-// 	defer visionClient.Close()
-//
-// 	// Parse multiple files from the request
-// 	form, err := c.MultipartForm()
-// 	if err != nil || len(form.File["images"]) == 0 {
-// 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "No images uploaded"})
-// 	}
-//
-// 	allIngredients := []string{}
-//
-// 	for _, file := range form.File["image"] {
-// 		// Save the uploaded file temporarily
-// 		src, err := file.Open()
-// 		if err != nil {
-// 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to open uploaded image"})
-// 		}
-// 		defer src.Close()
-//
-// 		fileBytes, err := io.ReadAll(src)
-// 		if err != nil {
-// 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read uploaded image"})
-// 		}
-// 		// Detect ingredients from the image
-// 		ingredients, err := detectIngredients(fileBytes, visionClient)
-// 		if err != nil {
-// 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{"error": err.Error()})
-// 		}
-//
-// 		allIngredients = append(allIngredients, ingredients...)
-// 	}
-//
-// 	//Remove duplicates from the ingredient list
-// 	response := removeDuplicates(allIngredients)
-//
-// 	return c.JSON(http.StatusOK, map[string]interface{}{
-// 		"status": true,
-// 		"data":   response,
-// 	})
-// }
+func IngredientHandler(c echo.Context) error {
+	geminiApiKey := os.Getenv("GEMINI_API_KEY")
+
+	authKey := os.Getenv("GOOGLE_SERVICE_KEY")
+
+	// if credsPath == "" {
+	// 	return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Credentials missing"})
+	// }
+
+	visionClient, err := vision.NewImageAnnotatorClient(context.Background(), option.WithAPIKey(authKey))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create Vision client"})
+	}
+	defer visionClient.Close()
+
+	// Parse multiple files from the request
+	form, err := c.MultipartForm()
+	if err != nil || len(form.File["images"]) == 0 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "No images uploaded"})
+	}
+
+	//allIngredients := []string{}
+
+	for _, file := range form.File["image"] {
+		// Save the uploaded file temporarily
+		src, err := file.Open()
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to open uploaded image"})
+		}
+		defer src.Close()
+
+		fileBytes, err := io.ReadAll(src)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read uploaded image"})
+		}
+		// Detect ingredients from the image
+		ingredients, err := detectIngredients(fileBytes, geminiApiKey)
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{"error": err.Error()})
+		}
+
+		fmt.Println(ingredients)
+		//allIngredients = append(allIngredients, ingredients...)
+	}
+
+	//Remove duplicates from the ingredient list
+	//response := removeDuplicates(allIngredients)
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"status": true,
+		"data":   "yoo",
+	})
+}
 
 func RecipeHandler(c echo.Context) error {
-	geminiApiKey := os.Getenv("GCLOUD_SERVICE_ACCOUNT_KEY")
+	geminiApiKey := os.Getenv("GEMINI_API_KEY")
 
 	if geminiApiKey == "" {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Credentials missing"})

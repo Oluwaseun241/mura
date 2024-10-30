@@ -10,7 +10,7 @@ import (
 
 func ClassifyImage(imageBytes []byte, cred string) (string, error) {
 	ctx := context.Background()
-	client, err := vision.NewImageAnnotatorClient(ctx, option.WithCredentialsFile(cred))
+	client, err := vision.NewImageAnnotatorClient(ctx, option.WithAPIKey(cred))
 	if err != nil {
 		return "", err
 	}
@@ -23,7 +23,7 @@ func ClassifyImage(imageBytes []byte, cred string) (string, error) {
 		return "", err
 	}
 
-	annotations, err := client.DetectLabels(ctx, img, nil, 10)
+	annotations, err := client.LocalizeObjects(ctx, img, nil)
 	if err != nil {
 		return "", err
 	}
@@ -33,15 +33,18 @@ func ClassifyImage(imageBytes []byte, cred string) (string, error) {
 
 	for _, annotation := range annotations {
 		for _, term := range cookedFoodTerms {
-			if annotation.Description == term && annotation.Score >= 0.75 {
+			if annotation.Name == term && annotation.Score >= 0.50 {
 				return "cooked food", nil
 			}
 		}
 		for _, term := range ingredientTerms {
-			if annotation.Description == term && annotation.Score >= 0.75 {
+			if annotation.Name == term && annotation.Score >= 0.50 {
 				return "ingredient", nil
 			}
 		}
 	}
 	return "ingredient", nil
 }
+
+// Returns youtube video relating to the recipe
+func YoutubeSearch() {}
