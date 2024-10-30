@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -46,7 +45,10 @@ func FoodHandler(c echo.Context) error {
 	// Classify the image
 	imageType, err := internal.ClassifyImage(fileBytes, authKey)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{"error": err.Error()})
+		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"status": false,
+			"error":  err.Error(),
+		})
 	}
 
 	if imageType == "ingredient" {
@@ -54,15 +56,28 @@ func FoodHandler(c echo.Context) error {
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]interface{}{"error": err.Error()})
 		}
-		return c.JSON(http.StatusOK, map[string]interface{}{"status": true, "data": ingredients})
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status": true,
+			"type":   "ingredient",
+			"data":   ingredients,
+		})
 	} else if imageType == "cooked food" {
 		food, err := detectFood(fileBytes, geminiApiKey)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]interface{}{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status": false,
+				"error":  err.Error(),
+			})
 		}
 		return c.JSON(http.StatusOK, map[string]interface{}{
 			"status": true,
+			"type":   "food",
 			"data":   food,
+		})
+	} else if imageType == "invalid item detected" {
+		return c.JSON(http.StatusOK, map[string]interface{}{
+			"status": false,
+			"error":  "invalid item detected...please upload appropriate image",
 		})
 	}
 	return c.JSON(http.StatusOK, map[string]interface{}{
@@ -76,10 +91,6 @@ func IngredientHandler(c echo.Context) error {
 
 	authKey := os.Getenv("GOOGLE_SERVICE_KEY")
 
-	// if credsPath == "" {
-	// 	return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Credentials missing"})
-	// }
-
 	visionClient, err := vision.NewImageAnnotatorClient(context.Background(), option.WithAPIKey(authKey))
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to create Vision client"})
@@ -92,7 +103,7 @@ func IngredientHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "No images uploaded"})
 	}
 
-	//allIngredients := []string{}
+	allIngredients := []interface{}{}
 
 	for _, file := range form.File["image"] {
 		// Save the uploaded file temporarily
@@ -107,21 +118,22 @@ func IngredientHandler(c echo.Context) error {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read uploaded image"})
 		}
 		// Detect ingredients from the image
-		ingredients, err := detectIngredients(fileBytes, geminiApiKey)
+		ingredientsMap, err := detectIngredients(fileBytes, geminiApiKey)
 		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]interface{}{"error": err.Error()})
+			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+				"status": false,
+				"error":  err.Error(),
+			})
 		}
 
-		fmt.Println(ingredients)
-		//allIngredients = append(allIngredients, ingredients...)
+		if foods, ok := ingredientsMap["foods"].([]interface{}); ok {
+			allIngredients = append(allIngredients, foods...)
+		}
 	}
-
-	//Remove duplicates from the ingredient list
-	//response := removeDuplicates(allIngredients)
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"status": true,
-		"data":   "yoo",
+		"data":   allIngredients,
 	})
 }
 

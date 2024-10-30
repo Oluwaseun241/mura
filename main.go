@@ -31,8 +31,8 @@ func main() {
 
 	// Routes
 	e.POST("/detect-food", api.FoodHandler)
-	//e.POST("/detect", api.IngredientHandler)
-	e.POST("/get-recipe", api.RecipeHandler)
+	e.POST("/detect", api.IngredientHandler)
+	e.POST("/recipe", api.RecipeHandler)
 
 	e.Logger.Fatal(e.Start(":" + port))
 }

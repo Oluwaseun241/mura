@@ -43,7 +43,7 @@ func ClassifyImage(imageBytes []byte, cred string) (string, error) {
 			}
 		}
 	}
-	return "ingredient", nil
+	return "invalid item detected", nil
 }
 
 // Returns youtube video relating to the recipe

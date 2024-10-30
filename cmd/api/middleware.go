@@ -1,11 +1,9 @@
 package api
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/google/generative-ai-go/genai"
@@ -22,26 +20,6 @@ func printResponse(resp *genai.GenerateContentResponse) string {
 		}
 	}
 	return result.String()
-}
-
-func parseResponse(resp string) (string, error) {
-	var ingredients struct {
-		Ingredients []string `json:"ingredients"`
-	}
-
-	// Use json.Unmarshal to parse the structured text response into JSON
-	err := json.Unmarshal([]byte(resp), &ingredients)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse response JSON: %v", err)
-	}
-
-	// Format it back to a string to return as JSON
-	formattedResponse, err := json.MarshalIndent(ingredients, "", "  ")
-	if err != nil {
-		return "", fmt.Errorf("failed to format response JSON: %v", err)
-	}
-
-	return string(formattedResponse), nil
 }
 
 func getFoodRecipes(ingredients []string, dish string, geminiApiKey string) (string, error) {
@@ -135,39 +113,6 @@ func detectIngredients(file []byte, apiKey string) (map[string]interface{}, erro
 	}
 
 	return parsedResponse, nil
-}
-
-// Check if they are food item
-func validateIngredient(ingredients []string) ([]string, []string, error) {
-	validIngredients := []string{}
-	invalidIngredients := []string{}
-
-	// open and read txt file content
-	input, err := os.Open("./internal/data.txt")
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to open file: %v", err)
-	}
-	defer input.Close()
-
-	// check through a text file
-	validSet := make(map[string]bool)
-
-	scanner := bufio.NewScanner(input)
-	for scanner.Scan() {
-		validSet[strings.TrimSpace(scanner.Text())] = true
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, nil, fmt.Errorf("error reading file: %v", err)
-	}
-	for _, ingredient := range ingredients {
-		if validSet[strings.ToLower(strings.TrimSpace(ingredient))] {
-			validIngredients = append(validIngredients, ingredient)
-		} else {
-			invalidIngredients = append(invalidIngredients, ingredient)
-		}
-	}
-	return validIngredients, invalidIngredients, nil
 }
 
 func removeDuplicates(elements []interface{}) []interface{} {
