@@ -3,3 +3,7 @@ run: build
 
 build:
 	@go build -o bin/mura main.go
+
+test:
+	@echo "Testing..."
+	@go test ./cmd/api -v
