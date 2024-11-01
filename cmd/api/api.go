@@ -81,8 +81,7 @@ func IngredientHandler(c echo.Context) error {
 
 	allIngredients := []interface{}{}
 
-	for _, file := range form.File["image"] {
-		// Save the uploaded file temporarily
+	for _, file := range form.File["images"] {
 		src, err := file.Open()
 		if err != nil {
 			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to open uploaded image"})
@@ -107,9 +106,11 @@ func IngredientHandler(c echo.Context) error {
 		}
 	}
 
+	uniqueIngredients := removeDuplicates(allIngredients)
+
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"status": true,
-		"data":   allIngredients,
+		"data":   uniqueIngredients,
 	})
 }
 
