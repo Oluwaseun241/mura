@@ -33,6 +33,7 @@ func main() {
 	e.POST("/detect-food", api.FoodHandler)
 	e.POST("/detect", api.IngredientHandler)
 	e.POST("/recipe", api.RecipeHandler)
+	e.GET("/test", api.YtHandler)
 
 	e.Logger.Fatal(e.Start(":" + port))
 }

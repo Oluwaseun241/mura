@@ -4,33 +4,24 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 )
 
-func printResponse(resp *genai.GenerateContentResponse) string {
-	var result strings.Builder
-	for _, cand := range resp.Candidates {
-		if cand.Content != nil {
-			for _, part := range cand.Content.Parts {
-				result.WriteString(fmt.Sprintf("%v\n", part))
-			}
-		}
-	}
-	return result.String()
-}
+func getFoodRecipes(ingredients []string, dish string) (string, error) {
+	geminiApiKey := os.Getenv("GEMINI_API_KEY")
 
-func getFoodRecipes(ingredients []string, dish string, geminiApiKey string) (string, error) {
 	ctx := context.Background()
 	client, err := genai.NewClient(ctx, option.WithAPIKey(geminiApiKey))
 	if err != nil {
 		return "", fmt.Errorf("Error initializing Gemini API: %v", err)
 	}
 
-	prompt1 := fmt.Sprintf("You are a helpful, AI assistant devoted to providing accurate and delightful recipes.This are the guildlines for you to follow when delivering a recipe response to a request 1. List out the ingredients first,including quantities.Provide detailed cooking times, temperatures and any special kitchen equipment needed 2.Provide step-by-step instructions for prepping, mixing, cooking, plating and any other necessary steps, detailed enough to follow. Include safety tips and special techniques as applicable Here are the ingredients I have: %s. Can you give me a specific recipe that includes only these ingredients, and detailed preparation steps?", strings.Join(ingredients, ", "))
-	prompt2 := fmt.Sprintf("You are a helpful, AI assistant devoted to providing accurate and delightful recipes.This are the guildlines for you to follow when delivering a recipe response to a request 1. List out the ingredients first,including quantities.Provide detailed cooking times, temperatures and any special kitchen equipment needed 2.Provide step-by-step instructions for prepping, mixing, cooking, plating and any other necessary steps, detailed enough to follow. Include safety tips and special techniques as applicable Here are the ingredients I have: %s. Can you give me a specific recipe that includes only these ingredients, and detailed preparation steps for %s", strings.Join(ingredients, ", "), dish)
+	prompt1 := fmt.Sprintf("You are a helpful, AI assistant devoted to providing accurate and delightful recipes.These are the guildlines for you to follow when delivering a recipe response to a request 1. List out the ingredients first,including quantities.Provide detailed cooking times, temperatures and any special kitchen equipment needed 2.Provide step-by-step instructions for prepping, mixing, cooking, plating and any other necessary steps, detailed enough to follow. Include safety tips and special techniques as applicable Here are the ingredients I have: %s. Can you give me a specific recipe that includes only these ingredients, and detailed preparation steps?", strings.Join(ingredients, ", "))
+	prompt2 := fmt.Sprintf("You are a helpful, AI assistant devoted to providing accurate and delightful recipes.These are the guildlines for you to follow when delivering a recipe response to a request 1. List out the ingredients first,including quantities.Provide detailed cooking times, temperatures and any special kitchen equipment needed 2.Provide step-by-step instructions for prepping, mixing, cooking, plating and any other necessary steps, detailed enough to follow. Include safety tips and special techniques as applicable Here are the ingredients I have: %s. Can you give me a specific recipe that includes only these ingredients, and detailed preparation steps for %s", strings.Join(ingredients, ", "), dish)
 
 	// Select the appropriate prompt
 	var prompt string
@@ -51,11 +42,13 @@ func getFoodRecipes(ingredients []string, dish string, geminiApiKey string) (str
 	return printResponse(resp), nil
 }
 
-func detectFood(fileBytes []byte, geminiApiKey string) (string, error) {
+func detectFood(fileBytes []byte) (string, error) {
+	geminiApiKey := os.Getenv("GEMINI_API_KEY")
+
 	ctx := context.Background()
 	prompt := []genai.Part{
 		genai.ImageData("jpeg", fileBytes),
-		genai.Text("Accurately identify the food in the image and provide an appropriate recipe consistent with your analysis."),
+		genai.Text("Accurately identify the food in the image and provide an appropriate recipe consistent with your analysis.These are the guildlines for you to follow when delivering a recipe response to a request 1. List out the ingredients first,including quantities.Provide detailed cooking times, temperatures and any special kitchen equipment needed 2.Provide step-by-step instructions for prepping, mixing, cooking, plating and any other necessary steps, detailed enough to follow. Include safety tips and special techniques as applicable"),
 	}
 
 	client, err := genai.NewClient(ctx, option.WithAPIKey(geminiApiKey))
@@ -71,8 +64,10 @@ func detectFood(fileBytes []byte, geminiApiKey string) (string, error) {
 	return printResponse(resp), nil
 }
 
-func detectIngredients(file []byte, apiKey string) (map[string]interface{}, error) {
-	client, err := genai.NewClient(context.Background(), option.WithAPIKey(apiKey))
+func detectIngredients(file []byte) (map[string]interface{}, error) {
+	geminiApiKey := os.Getenv("GEMINI_API_KEY")
+
+	client, err := genai.NewClient(context.Background(), option.WithAPIKey(geminiApiKey))
 	if err != nil {
 		return nil, fmt.Errorf("Error initializing Gemini API")
 	}
@@ -113,19 +108,4 @@ func detectIngredients(file []byte, apiKey string) (map[string]interface{}, erro
 	}
 
 	return parsedResponse, nil
-}
-
-func removeDuplicates(elements []interface{}) []interface{} {
-	encountered := map[string]bool{}
-	result := []interface{}{}
-
-	for _, v := range elements {
-		strValue := fmt.Sprintf("%v", v)
-		if !encountered[strValue] {
-			encountered[strValue] = true
-			result = append(result, v)
-		}
-	}
-
-	return result
 }
