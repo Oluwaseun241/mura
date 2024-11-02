@@ -11,19 +11,11 @@ import (
 	"time"
 
 	vision "cloud.google.com/go/vision/apiv1"
-	"google.golang.org/api/option"
+	"github.com/Oluwaseun241/mura/cmd/client"
 )
 
 func ClassifyImage(imageBytes []byte) (string, error) {
-	authKey := os.Getenv("GOOGLE_SERVICE_KEY")
-
 	ctx := context.Background()
-	client, err := vision.NewImageAnnotatorClient(ctx, option.WithAPIKey(authKey))
-	if err != nil {
-		return "", err
-	}
-	defer client.Close()
-
 	imageReader := bytes.NewReader(imageBytes)
 
 	img, err := vision.NewImageFromReader(imageReader)
@@ -31,7 +23,7 @@ func ClassifyImage(imageBytes []byte) (string, error) {
 		return "", err
 	}
 
-	annotations, err := client.LocalizeObjects(ctx, img, nil)
+	annotations, err := client.VisionClient.LocalizeObjects(ctx, img, nil)
 	if err != nil {
 		return "", err
 	}

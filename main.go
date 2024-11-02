@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/Oluwaseun241/mura/cmd/api"
+	"github.com/Oluwaseun241/mura/cmd/client"
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -16,6 +17,9 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+
+	// initialize client connection
+	client.Init()
 
 	port := os.Getenv("PORT")
 	if port == "" {
