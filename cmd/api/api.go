@@ -2,7 +2,9 @@ package api
 
 import (
 	"io"
+	"mime/multipart"
 	"net/http"
+	"sync"
 
 	"github.com/Oluwaseun241/mura/internal"
 	"github.com/labstack/echo/v4"
@@ -79,33 +81,57 @@ func IngredientHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "No images uploaded"})
 	}
 
-	allIngredients := []interface{}{}
+	// process image concurrently
+	var wg sync.WaitGroup
+	imageChannel := make(chan map[string]interface{}, len(form.File["images"]))
 
 	for _, file := range form.File["images"] {
-		src, err := file.Open()
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to open uploaded image"})
-		}
-		defer src.Close()
+		wg.Add(1)
+		go func(file *multipart.FileHeader) {
+			defer wg.Done()
+			src, err := file.Open()
+			if err != nil {
+				imageChannel <- map[string]interface{}{"error": "Failed to open uploaded image"}
+				return
+			}
+			defer src.Close()
 
-		fileBytes, err := io.ReadAll(src)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read uploaded image"})
-		}
-		// Detect ingredients from the image
-		ingredientsMap, err := detectIngredients(fileBytes)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"status": false,
-				"error":  err.Error(),
-			})
-		}
+			fileBytes, err := io.ReadAll(src)
+			if err != nil {
+				imageChannel <- map[string]interface{}{"error": "Failed to read uploaded image"}
+				return
+			}
 
-		if foods, ok := ingredientsMap["foods"].([]interface{}); ok {
-			allIngredients = append(allIngredients, foods...)
+			// Detect ingredients from the image
+			ingredientsMap, err := detectIngredients(fileBytes)
+			if err != nil {
+				imageChannel <- map[string]interface{}{"status": false, "error": err.Error()}
+				return
+			}
+
+			if foods, ok := ingredientsMap["foods"].([]interface{}); ok {
+				imageChannel <- map[string]interface{}{"status": true, "data": foods}
+			} else {
+				imageChannel <- map[string]interface{}{"status": false, "error": "No ingredients detected"}
+			}
+		}(file)
+	}
+
+	go func() {
+		wg.Wait()
+		close(imageChannel)
+	}()
+
+	var allIngredients []interface{}
+	for res := range imageChannel {
+		if res["status"].(bool) {
+			if data, ok := res["data"].([]interface{}); ok {
+				allIngredients = append(allIngredients, data...)
+			}
 		}
 	}
 
+	// Remove duplicate
 	uniqueIngredients := removeDuplicates(allIngredients)
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
