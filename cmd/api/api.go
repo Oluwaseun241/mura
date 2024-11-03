@@ -162,7 +162,7 @@ func RecipeHandler(c echo.Context) error {
 }
 
 func YtHandler(c echo.Context) error {
-	query := "HowtocookPasta"
+	query := "HowtocookJollofRice"
 	video, err := internal.YoutubeSearch(query)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
