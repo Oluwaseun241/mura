@@ -4,9 +4,9 @@ on:
   push:
     branches:
       - main
-    pull_request:
-      branches:
-        - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
@@ -29,3 +29,33 @@ jobs:
 
       - name: Image digest
         run: echo "Built image digest"
+
+      - id: auth
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: "${{secrets.GOOGLE_CREDENTIALS_JSON}}"
+
+      - name: Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Configure Docker for GCP
+        run: gcloud auth configure-docker africa-south1-docker.pkg.dev
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          tags: africa-south1-docker.pkg.dev/regal-timing-437806-e7/cloud-run-source-deploy/mura:latest
+          build-args: |
+            HTTP_PORT=8080
+
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          image: africa-south1-docker.pkg.dev/regal-timing-437806-e7/cloud-run-source-deploy/mura:latest
+          service: mura
+          region: africa-south1
+          env_vars: |
+            GEMINI_API_KEY="${{secrets.GEMINI_API_KEY}}"
+            GOOGLE_SERVICE_KEY="${{secrets.GOOGLE_SERVICE_KEY}}"

@@ -1,5 +1,7 @@
 TODO
 
+Sort ci/cd deployment tomorrow
+
 - [x] Return the type == "food" | "ingredients"
 - [x] Handle adding more image for ingredient detection or add text
 - [x] How to return non food uploads
