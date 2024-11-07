@@ -1,11 +1,12 @@
 TODO
 
-Sort ci/cd deployment tomorrow
+Sort ci/cd deployment(progress so far port not responding env related)
 
 - [x] Return the type == "food" | "ingredients"
 - [x] Handle adding more image for ingredient detection or add text
 - [x] How to return non food uploads
 - [x] Youtube suggestions(search)
+      almost ready
 - [x] Write test
 - [] Reduce response time (currently 20 - 45 sec for reicipe) (4-10 sec for ingredient)
   from 20s to ....

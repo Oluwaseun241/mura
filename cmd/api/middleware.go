@@ -92,3 +92,22 @@ func detectIngredients(file []byte) (map[string]interface{}, error) {
 
 	return parsedResponse, nil
 }
+
+func getVideoPrompt(file []byte) (string, error) {
+	ctx := context.Background()
+
+	prompt := []genai.Part{
+		genai.ImageData("jpeg", file),
+		genai.Text("Accurately identify the food in the image and provide an appropriate prompt to search for tutorial video on youtube"),
+	}
+
+	model := client.GeminiClient.GenerativeModel("gemini-1.5-pro")
+	model.ResponseMIMEType = "application/json"
+
+	resp, err := model.GenerateContent(ctx, prompt...)
+	if err != nil {
+		return "", fmt.Errorf("Error generating content")
+	}
+	return printResponse(resp), nil
+
+}

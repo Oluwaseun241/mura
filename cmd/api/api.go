@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -162,7 +163,26 @@ func RecipeHandler(c echo.Context) error {
 }
 
 func YtHandler(c echo.Context) error {
-	query := "HowtocookJollofRice"
+	query := "how to make jollof rice with fried plantains and roasted beef"
+	form, err := c.MultipartForm()
+	if err != nil || len(form.File["image"]) == 0 {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "No images uploaded"})
+	}
+
+	file := form.File["image"][0]
+
+	src, err := file.Open()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to open uploaded image"})
+	}
+	defer src.Close()
+
+	fileBytes, err := io.ReadAll(src)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read uploaded image"})
+	}
+	q, err := getVideoPrompt(fileBytes)
+	fmt.Println(q)
 	video, err := internal.YoutubeSearch(query)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
