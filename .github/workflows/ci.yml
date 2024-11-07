@@ -24,9 +24,6 @@ jobs:
           push: false
           tags: mura:latest
 
-      - name: Image digest
-        run: echo "Built image digest"
-
       - id: auth
         uses: google-github-actions/auth@v1
         with:
@@ -56,3 +53,4 @@ jobs:
           env_vars: |
             GEMINI_API_KEY="${{secrets.GEMINI_API_KEY}}"
             GOOGLE_SERVICE_KEY="${{secrets.GOOGLE_SERVICE_KEY}}"
+          timeout: 150s
