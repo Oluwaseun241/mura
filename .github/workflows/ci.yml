@@ -51,6 +51,7 @@ jobs:
           service: mura
           region: africa-south1
           env_vars: |
-            GEMINI_API_KEY="${{secrets.GEMINI_API_KEY}}"
-            GOOGLE_SERVICE_KEY="${{secrets.GOOGLE_SERVICE_KEY}}"
+            GEMINI_API_KEY=${{secrets.GEMINI_API_KEY}}
+            GOOGLE_SERVICE_KEY=${{secrets.GOOGLE_SERVICE_KEY}}
+            RUN_ENV=cloudrun
           timeout: 150s

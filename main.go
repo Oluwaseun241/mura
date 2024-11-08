@@ -13,9 +13,11 @@ import (
 
 func main() {
 	// Load Env variables
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	if os.Getenv("RUN_ENV") != "cloudrun" {
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatal("Error loading .env file")
+		}
 	}
 
 	// initialize client connection
