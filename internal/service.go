@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -46,38 +48,35 @@ func ClassifyImage(imageBytes []byte) (string, error) {
 	return "invalid item detected", nil
 }
 
-type YoutubeResoonse struct {
-	Items []struct {
-		ID struct {
-			VideoID string `json:"videoId"`
-		} `json:"id"`
-		Snippet struct {
-			Title       string `json:"title"`
-			Description string `json:"description"`
-			Thumbnails  struct {
-				High struct {
-					URL string `json:"url"`
-				} `json:"default"`
-			} `json:"thumbnails"`
-			ChannelTitle string `json:"channelTitle"`
-		} `json:"snippet"`
-	} `json:"items"`
-}
-
-type YouTubeVideo struct {
-	VideoID     string `json:"videoId"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Thumbnail   string `json:"thumbnail"`
-	VideoURL    string `json:"videoUrl"`
-}
-
 const youtubeSearchURL = "https://www.googleapis.com/youtube/v3/search"
 
-// Returns youtube video relating to the recipe
 func YoutubeSearch(query string) ([]YouTubeVideo, error) {
 	authKey := os.Getenv("GOOGLE_SERVICE_KEY")
-	client := &http.Client{Timeout: 10 * time.Second}
+	encodedQuery := url.QueryEscape(query)
+	url := fmt.Sprintf("%s?part=snippet&q=%s&key=%s&type=video&maxResults=5&order=viewCount", youtubeSearchURL, encodedQuery, authKey)
+
+	var videos []YouTubeVideo
+	var err error
+	maxAttempts := 3
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		videos, err = YoutubeAPICall(url)
+		if err == nil {
+			return videos, nil
+		}
+		// Retry only if the error is related to timeout
+		if !errors.Is(err, context.DeadlineExceeded) {
+			break
+		}
+		time.Sleep(2 * time.Second) // wait before retrying
+	}
+
+	return nil, fmt.Errorf("YouTube API request failed after %d attempts: %v", maxAttempts, err)
+}
+
+// Returns youtube video relating to the recipe
+func YoutubeAPICall(query string) ([]YouTubeVideo, error) {
+	authKey := os.Getenv("GOOGLE_SERVICE_KEY")
+	client := &http.Client{Timeout: 3 * time.Second}
 	url := fmt.Sprintf("%s?part=snippet&q=%s&key=%s&type=video&maxResults=5&order=viewCount", youtubeSearchURL, query, authKey)
 	resp, err := client.Get(url)
 	if err != nil {
@@ -95,7 +94,7 @@ func YoutubeSearch(query string) ([]YouTubeVideo, error) {
 		return nil, err
 	}
 
-	var ytResponse YoutubeResoonse
+	var ytResponse YoutubeResponse
 	if err := json.Unmarshal(body, &ytResponse); err != nil {
 		return nil, fmt.Errorf("error unmarshaling YouTube API response: %v", err)
 	}
@@ -103,11 +102,10 @@ func YoutubeSearch(query string) ([]YouTubeVideo, error) {
 	videos := []YouTubeVideo{}
 	for _, item := range ytResponse.Items {
 		videos = append(videos, YouTubeVideo{
-			VideoID:     item.ID.VideoID,
-			Title:       item.Snippet.Title,
-			Description: item.Snippet.Description,
-			Thumbnail:   item.Snippet.Thumbnails.High.URL,
-			VideoURL:    "https://www.youtube.com/watch?v=" + item.ID.VideoID,
+			//VideoID:   item.ID.VideoID,
+			Title:     item.Snippet.Title,
+			Thumbnail: item.Snippet.Thumbnails.High.URL,
+			VideoURL:  "https://www.youtube.com/watch?v=" + item.ID.VideoID,
 		})
 	}
 	return videos, nil

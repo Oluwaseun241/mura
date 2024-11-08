@@ -40,39 +40,58 @@ func FoodHandler(c echo.Context) error {
 		})
 	}
 
-	if imageType == "ingredient" {
-		ingredients, err := detectIngredients(fileBytes)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]interface{}{"error": err.Error()})
-		}
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"status": true,
-			"type":   "ingredient",
-			"data":   ingredients,
-		})
-	} else if imageType == "cooked food" {
-		food, err := detectFood(fileBytes)
-		if err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"status": false,
-				"error":  err.Error(),
-			})
-		}
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"status": true,
-			"type":   "food",
-			"data":   food,
-		})
-	} else if imageType == "invalid item detected" {
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"status": false,
-			"error":  "invalid item detected...please upload appropriate image",
-		})
+	response := map[string]interface{}{
+		"status": true,
+		"type":   imageType,
 	}
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"status": false,
-		"error":  "Unknown image type",
-	})
+
+	// wait group to wait for both tasks to finish
+	var wg sync.WaitGroup
+
+	if imageType == "ingredient" {
+		wg.Add(1)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			ingredients, err := detectIngredients(fileBytes)
+			if err != nil {
+				response["error"] = err.Error()
+				response["status"] = false
+				return
+			}
+			response["data"] = ingredients
+		}()
+	} else if imageType == "cooked food" {
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			food, err := detectFood(fileBytes)
+			if err != nil {
+				response["error"] = err.Error()
+				response["status"] = false
+				return
+			}
+			response["data"] = food
+		}()
+
+		// YouTube recommendation task
+		go func() {
+			defer wg.Done()
+			yt, err := ytVideoRecommendation(fileBytes)
+			if err != nil {
+				response["yt_error"] = err.Error()
+				return
+			}
+			response["yt"] = yt
+		}()
+	} else if imageType == "invalid item detected" {
+		response["status"] = false
+		response["error"] = "Invalid item detected...please upload appropriate image"
+	}
+
+	wg.Wait()
+
+	return c.JSON(http.StatusOK, response)
 }
 
 func IngredientHandler(c echo.Context) error {
@@ -156,39 +175,15 @@ func RecipeHandler(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"status": true,
-		"data":   recipe,
-	})
-}
-
-func YtHandler(c echo.Context) error {
-	query := "how to make jollof rice with fried plantains and roasted beef"
-	form, err := c.MultipartForm()
-	if err != nil || len(form.File["image"]) == 0 {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "No images uploaded"})
-	}
-
-	file := form.File["image"][0]
-
-	src, err := file.Open()
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to open uploaded image"})
-	}
-	defer src.Close()
-
-	fileBytes, err := io.ReadAll(src)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read uploaded image"})
-	}
-	q, err := getVideoPrompt(fileBytes)
-	fmt.Println(q)
-	video, err := internal.YoutubeSearch(query)
+	query := fmt.Sprintf("How to make %s", data.Dish)
+	yt, err := internal.YoutubeSearch(query)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
+
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"status": true,
-		"data":   video,
+		"data":   recipe,
+		"yt":     yt,
 	})
 }
