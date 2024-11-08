@@ -13,9 +13,11 @@ import (
 
 func main() {
 	// Load Env variables
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	if os.Getenv("RUN_ENV") != "cloudrun" {
+		err := godotenv.Load()
+		if err != nil {
+			log.Fatal("Error loading .env file")
+		}
 	}
 
 	// initialize client connection
@@ -37,7 +39,7 @@ func main() {
 	e.POST("/detect-food", api.FoodHandler)
 	e.POST("/detect", api.IngredientHandler)
 	e.POST("/recipe", api.RecipeHandler)
-	e.GET("/test", api.YtHandler)
+	//e.POST("/test", api.YtHandler)
 
 	e.Logger.Fatal(e.Start(":" + port))
 }

@@ -3,10 +3,13 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Oluwaseun241/mura/cmd/client"
+	"github.com/Oluwaseun241/mura/internal"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -91,4 +94,65 @@ func detectIngredients(file []byte) (map[string]interface{}, error) {
 	}
 
 	return parsedResponse, nil
+}
+
+func getVideoPrompt(file []byte) (*internal.VideoPromptResponse, error) {
+	ctx := context.Background()
+
+	prompt := []genai.Part{
+		genai.ImageData("jpeg", file),
+		genai.Text("Accurately identify the food in the image and provide an appropriate prompt to search for tutorial video on youtube"),
+	}
+
+	model := client.GeminiClient.GenerativeModel("gemini-1.5-pro")
+	model.ResponseMIMEType = "application/json"
+
+	resp, err := model.GenerateContent(ctx, prompt...)
+	if err != nil {
+		return nil, fmt.Errorf("Error generating content")
+	}
+
+	var content string
+	for _, part := range resp.Candidates[0].Content.Parts {
+		if textPart, ok := part.(genai.Text); ok {
+			content += string(textPart)
+		} else {
+			return nil, fmt.Errorf("unexpected part type: %T", part)
+		}
+	}
+
+	var result internal.VideoPromptResponse
+	if err := json.Unmarshal([]byte(content), &result); err != nil {
+		return nil, fmt.Errorf("error decoding response JSON: %v", err)
+	}
+	return &result, nil
+}
+
+func ytVideoRecommendation(file []byte) ([]internal.YouTubeVideo, error) {
+	var err error
+	var p *internal.VideoPromptResponse
+	maxAttempts := 3
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		fmt.Println(attempt)
+		p, err = getVideoPrompt(file)
+		if err == nil {
+			break
+		}
+		// Retry only if the error is related to timeout
+		if !errors.Is(err, context.DeadlineExceeded) {
+			return nil, fmt.Errorf("failed to retrieve video prompt: %v", err)
+		}
+		time.Sleep(2 * time.Second)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("YouTube API request failed after %d attempts: %v", maxAttempts, err)
+	}
+
+	video, err := internal.YoutubeSearch(p.YouTubeSearchPrompt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to search for YouTube videos: %v", err)
+	}
+
+	return video, nil
 }
