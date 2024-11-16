@@ -101,7 +101,7 @@ func getVideoPrompt(file []byte) (*internal.VideoPromptResponse, error) {
 
 	prompt := []genai.Part{
 		genai.ImageData("jpeg", file),
-		genai.Text("Accurately identify the food in the image and provide an appropriate prompt to search for tutorial video on youtube"),
+		genai.Text("Accurately identify the food in the image and provide an appropriate prompt to search for tutorial video on youtube."),
 	}
 
 	model := client.GeminiClient.GenerativeModel("gemini-1.5-pro")
@@ -133,7 +133,6 @@ func ytVideoRecommendation(file []byte) ([]internal.YouTubeVideo, error) {
 	var p *internal.VideoPromptResponse
 	maxAttempts := 3
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		fmt.Println(attempt)
 		p, err = getVideoPrompt(file)
 		if err == nil {
 			break

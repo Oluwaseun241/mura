@@ -31,66 +31,68 @@ func FoodHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to read uploaded image"})
 	}
 
-	// Classify the image
-	imageType, err := internal.ClassifyImage(fileBytes)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
-			"status": false,
-			"error":  err.Error(),
-		})
-	}
-
-	response := map[string]interface{}{
-		"status": true,
-		"type":   imageType,
-	}
-
-	// wait group to wait for both tasks to finish
+	// Run all processes concurrently to save time
+	response := map[string]interface{}{"status": true}
 	var wg sync.WaitGroup
+	var mu sync.Mutex
 
-	if imageType == "ingredient" {
-		wg.Add(1)
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			ingredients, err := detectIngredients(fileBytes)
-			if err != nil {
-				response["error"] = err.Error()
-				response["status"] = false
-				return
-			}
+	// Classify the image concurrently
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		imageType, err := internal.ClassifyImage(fileBytes)
+		mu.Lock()
+		defer mu.Unlock()
+		if err != nil {
+			response["status"] = false
+			response["error"] = err.Error()
+		} else {
+			response["type"] = imageType
+		}
+	}()
+
+	// Detect ingredients
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		ingredients, err := detectIngredients(fileBytes)
+		mu.Lock()
+		defer mu.Unlock()
+		if err == nil {
 			response["data"] = ingredients
-		}()
-	} else if imageType == "cooked food" {
-		wg.Add(2)
-		go func() {
-			defer wg.Done()
-			food, err := detectFood(fileBytes)
-			if err != nil {
-				response["error"] = err.Error()
-				response["status"] = false
-				return
-			}
+			response["type"] = "ingredient"
+		}
+	}()
+
+	// Detect food and get recipe
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		food, err := detectFood(fileBytes)
+		mu.Lock()
+		defer mu.Unlock()
+		if err == nil {
 			response["data"] = food
-		}()
+			response["type"] = "cooked food"
+		}
+	}()
 
-		// YouTube recommendation task
-		go func() {
-			defer wg.Done()
-			yt, err := ytVideoRecommendation(fileBytes)
-			if err != nil {
-				response["yt_error"] = err.Error()
-				return
-			}
+	// YouTube recommendation
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		yt, err := ytVideoRecommendation(fileBytes)
+		mu.Lock()
+		defer mu.Unlock()
+		if err == nil {
 			response["yt"] = yt
-		}()
-	} else if imageType == "invalid item detected" {
-		response["status"] = false
-		response["error"] = "Invalid item detected...please upload appropriate image"
-	}
+		} else {
+			response["yt_error"] = err.Error()
+		}
+	}()
 
+	// Wait for all goroutines to finish
 	wg.Wait()
-
 	return c.JSON(http.StatusOK, response)
 }
 
