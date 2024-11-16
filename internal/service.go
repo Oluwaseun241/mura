@@ -53,7 +53,7 @@ const youtubeSearchURL = "https://www.googleapis.com/youtube/v3/search"
 func YoutubeSearch(query string) ([]YouTubeVideo, error) {
 	authKey := os.Getenv("GOOGLE_SERVICE_KEY")
 	encodedQuery := url.QueryEscape(query)
-	url := fmt.Sprintf("%s?part=snippet&q=%s&key=%s&type=video&maxResults=5&order=viewCount", youtubeSearchURL, encodedQuery, authKey)
+	url := fmt.Sprintf("%s?part=snippet&q=%s&key=%s&type=video&maxResults=5&order=relevance", youtubeSearchURL, encodedQuery, authKey)
 
 	var videos []YouTubeVideo
 	var err error
