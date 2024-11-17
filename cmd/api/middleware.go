@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/Oluwaseun241/mura/cmd/client"
-	"github.com/Oluwaseun241/mura/internal"
+	"github.com/Oluwaseun241/mura/internal/service"
 	"github.com/google/generative-ai-go/genai"
 )
 
@@ -96,7 +96,7 @@ func detectIngredients(file []byte) (map[string]interface{}, error) {
 	return parsedResponse, nil
 }
 
-func getVideoPrompt(file []byte) (*internal.VideoPromptResponse, error) {
+func getVideoPrompt(file []byte) (*service.VideoPromptResponse, error) {
 	ctx := context.Background()
 
 	prompt := []genai.Part{
@@ -121,16 +121,16 @@ func getVideoPrompt(file []byte) (*internal.VideoPromptResponse, error) {
 		}
 	}
 
-	var result internal.VideoPromptResponse
+	var result service.VideoPromptResponse
 	if err := json.Unmarshal([]byte(content), &result); err != nil {
 		return nil, fmt.Errorf("error decoding response JSON: %v", err)
 	}
 	return &result, nil
 }
 
-func ytVideoRecommendation(file []byte) ([]internal.YouTubeVideo, error) {
+func ytVideoRecommendation(file []byte) ([]service.YouTubeVideo, error) {
 	var err error
-	var p *internal.VideoPromptResponse
+	var p *service.VideoPromptResponse
 	maxAttempts := 3
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		p, err = getVideoPrompt(file)
@@ -148,7 +148,7 @@ func ytVideoRecommendation(file []byte) ([]internal.YouTubeVideo, error) {
 		return nil, fmt.Errorf("YouTube API request failed after %d attempts: %v", maxAttempts, err)
 	}
 
-	video, err := internal.YoutubeSearch(p.YouTubeSearchPrompt)
+	video, err := service.YoutubeSearch(p.YouTubeSearchPrompt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search for YouTube videos: %v", err)
 	}

@@ -1,4 +1,4 @@
-package internal
+package service
 
 type VideoPromptResponse struct {
 	FoodName            string `json:"food_name"`
@@ -24,7 +24,8 @@ type YoutubeResponse struct {
 }
 
 type YouTubeVideo struct {
-	Title     string `json:"title"`
-	Thumbnail string `json:"thumbnail"`
-	VideoURL  string `json:"videoUrl"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Thumbnail   string `json:"thumbnail"`
+	VideoURL    string `json:"videoUrl"`
 }

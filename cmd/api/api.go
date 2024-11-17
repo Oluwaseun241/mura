@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/Oluwaseun241/mura/internal"
+	"github.com/Oluwaseun241/mura/internal/service"
 	"github.com/labstack/echo/v4"
 )
 
@@ -40,7 +40,7 @@ func FoodHandler(c echo.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		imageType, err := internal.ClassifyImage(fileBytes)
+		imageType, err := service.ClassifyImage(fileBytes)
 		mu.Lock()
 		defer mu.Unlock()
 		if err != nil {
@@ -81,7 +81,7 @@ func FoodHandler(c echo.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		err := internal.UploadImage(fileBytes)
+		err := service.UploadImage(fileBytes)
 		mu.Lock()
 		defer mu.Unlock()
 		if err != nil {
@@ -191,7 +191,7 @@ func RecipeHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 	query := fmt.Sprintf("How to make %s", data.Dish)
-	yt, err := internal.YoutubeSearch(query)
+	yt, err := service.YoutubeSearch(query)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
