@@ -77,6 +77,19 @@ func FoodHandler(c echo.Context) error {
 		}
 	}()
 
+	// Upload image(data collection)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := internal.UploadImage(fileBytes)
+		mu.Lock()
+		defer mu.Unlock()
+		if err != nil {
+			response["status"] = false
+			response["error"] = err.Error()
+		}
+	}()
+
 	// YouTube recommendation
 	wg.Add(1)
 	go func() {
