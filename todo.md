@@ -1,4 +1,4 @@
-TODO
+TODO -> launch
 
 - [x] Return the type == "food" | "ingredients"
 - [x] Handle adding more image for ingredient detection or add text
