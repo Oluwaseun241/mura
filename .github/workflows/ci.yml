@@ -68,7 +68,6 @@ jobs:
           region: africa-south1
           env_vars: |
             GEMINI_API_KEY=${{secrets.GEMINI_API_KEY}}
-            GOOGLE_SERVICE_KEY=${{secrets.GOOGLE_SERVICE_KEY}}
             CLOUDINARY_URL=${{secrets.CLOUDINARY_URL}}
             RUN_ENV=cloudrun
           timeout: 150s

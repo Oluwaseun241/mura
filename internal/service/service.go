@@ -1,41 +1,50 @@
 package service
 
 import (
-	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
 
-	vision "cloud.google.com/go/vision/apiv1"
 	"github.com/Oluwaseun241/mura/cmd/client"
+	"github.com/google/generative-ai-go/genai"
 )
 
 func ClassifyImage(imageBytes []byte) (string, error) {
 	ctx := context.Background()
-	imageReader := bytes.NewReader(imageBytes)
 
-	img, err := vision.NewImageFromReader(imageReader)
+	prompt := []genai.Part{
+		genai.ImageData("jpeg", imageBytes),
+		genai.Text("Analyze this image and classify it as either 'cooked food' or 'ingredient'. Return the result in JSON format as {\"type\": \"cooked food\"} or {\"type\": \"ingredient\"}. If the image doesn't contain food or ingredients, return {\"type\": \"invalid\"}."),
+	}
+
+	model := client.GeminiClient.GenerativeModel("gemini-2.0-flash")
+	model.ResponseMIMEType = "application/json"
+
+	resp, err := model.GenerateContent(ctx, prompt...)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error generating content: %v", err)
 	}
 
-	annotations, err := client.VisionClient.LocalizeObjects(ctx, img, nil)
-	if err != nil {
-		return "", err
+	// Extract the content from the response
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+		return "", fmt.Errorf("no content generated")
 	}
 
-	cookedFoodTerms := []string{"Food", "Recipe", "Cuisine", "Dish", "Jollof rice", "Fried rice", "Rice"}
-	ingredientTerms := []string{"Ingredient", "Vegetable", "Spice"}
-
-	for _, annotation := range annotations {
-		for _, term := range cookedFoodTerms {
-			if annotation.Name == term && annotation.Score >= 0.50 {
-				return "cooked food", nil
-			}
-		}
-		for _, term := range ingredientTerms {
-			if annotation.Name == term && annotation.Score >= 0.50 {
-				return "ingredient", nil
-			}
+	var combinedContent string
+	for _, part := range resp.Candidates[0].Content.Parts {
+		if textPart, ok := part.(genai.Text); ok {
+			combinedContent += string(textPart)
+		} else {
+			return "", fmt.Errorf("unexpected part type: %T", part)
 		}
 	}
-	return "invalid item detected", nil
+
+	var result struct {
+		Type string `json:"type"`
+	}
+	if err := json.Unmarshal([]byte(combinedContent), &result); err != nil {
+		return "", fmt.Errorf("error parsing response: %v", err)
+	}
+
+	return result.Type, nil
 }

@@ -27,7 +27,7 @@ func getFoodRecipes(ingredients []string, dish string) (string, error) {
 		prompt = prompt1
 	}
 
-	model := client.GeminiClient.GenerativeModel("gemini-1.5-pro")
+	model := client.GeminiClient.GenerativeModel("gemini-2.0-flash")
 	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
 		return "", fmt.Errorf("Error generating content: %v", err)
@@ -46,7 +46,7 @@ func detectFood(fileBytes []byte) (string, error) {
 		genai.Text("Accurately identify the food in the image and provide an appropriate recipe consistent with your analysis.These are the guildlines for you to follow when delivering a recipe response to a request 1. List out the ingredients first, including quantities. Provide detailed cooking times, temperatures and any special kitchen equipment needed 2.Provide step-by-step instructions for prepping, mixing, cooking, plating and any other necessary steps, detailed enough to follow. Include pro chef tips and special techniques as applicable. Lastly Nutritional information like Calories, Protein and Carbs"),
 	}
 
-	model := client.GeminiClient.GenerativeModel("gemini-1.5-pro")
+	model := client.GeminiClient.GenerativeModel("gemini-2.0-flash")
 	//model.ResponseMIMEType = "application/json"
 
 	resp, err := model.GenerateContent(ctx, prompt...)
@@ -57,7 +57,7 @@ func detectFood(fileBytes []byte) (string, error) {
 }
 
 func detectIngredients(file []byte) (map[string]interface{}, error) {
-	model := client.GeminiClient.GenerativeModel("gemini-1.5-pro")
+	model := client.GeminiClient.GenerativeModel("gemini-2.0-flash")
 	model.ResponseMIMEType = "application/json"
 	prompt := []genai.Part{
 		genai.ImageData("jpeg", file),
@@ -101,30 +101,41 @@ func getVideoPrompt(file []byte) (*service.VideoPromptResponse, error) {
 
 	prompt := []genai.Part{
 		genai.ImageData("jpeg", file),
-		genai.Text("Accurately identify the food in the image and provide an appropriate prompt to search for tutorial video on youtube."),
+		genai.Text("Analyze this food image and return a JSON response with two fields: 'food_name' (the name of the dish) and 'youtube_search_prompt' (a search query for finding cooking tutorials). Format: {\"food_name\": \"dish name\", \"youtube_search_prompt\": \"how to cook dish name recipe tutorial\"}. Make the search prompt specific and include terms like 'recipe', 'tutorial', or 'how to cook'."),
 	}
 
-	model := client.GeminiClient.GenerativeModel("gemini-1.5-pro")
+	model := client.GeminiClient.GenerativeModel("gemini-2.0-flash")
 	model.ResponseMIMEType = "application/json"
 
 	resp, err := model.GenerateContent(ctx, prompt...)
 	if err != nil {
-		return nil, fmt.Errorf("Error generating content")
+		return nil, fmt.Errorf("Error generating content: %v", err)
 	}
 
-	var content string
+	// Extract the content from the response
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+		return nil, fmt.Errorf("no content generated")
+	}
+
+	var combinedContent string
 	for _, part := range resp.Candidates[0].Content.Parts {
 		if textPart, ok := part.(genai.Text); ok {
-			content += string(textPart)
+			combinedContent += string(textPart)
 		} else {
 			return nil, fmt.Errorf("unexpected part type: %T", part)
 		}
 	}
 
 	var result service.VideoPromptResponse
-	if err := json.Unmarshal([]byte(content), &result); err != nil {
+	if err := json.Unmarshal([]byte(combinedContent), &result); err != nil {
 		return nil, fmt.Errorf("error decoding response JSON: %v", err)
 	}
+
+	// Validate the response
+	if result.FoodName == "" || result.YouTubeSearchPrompt == "" {
+		return nil, fmt.Errorf("incomplete response: missing food name or search prompt")
+	}
+
 	return &result, nil
 }
 
