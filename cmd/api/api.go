@@ -42,7 +42,7 @@ func FoodHandler(c echo.Context) error {
 
 	response := map[string]interface{}{
 		"status": true,
-		//"type":   imageType,
+		"type":   imageType,
 	}
 
 	// Run all processes concurrently to save time
